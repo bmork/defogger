@@ -1,0 +1,66 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+# Copyright(c) 2019 Bjørn Mork <bjorn@mork.no>
+
+PATH=$PATH:/opt
+export LD_LIBRARY_PATH=/opt:$LD_LIBRARY_PATH
+
+die() {
+	echo $@
+	exit 1
+}
+
+showUsage() {
+	die "$0 {start|stop|restart|status}"
+}
+
+action=$1
+
+start() {
+	echo "opt.local start"
+
+	echo "Make sure there is an admin account with the pincode as password"
+	grep -Eq ^admin: /etc/passwd || echo admin:x:0:0::/:/bin/sh >>/etc/passwd
+	grep -Eq ^admin:x: /etc/passwd && echo "admin:$(pibinfo Pincode)" | chpasswd
+
+	echo "Starting telnetd"
+	pidof telnetd || telnetd
+
+	tdb set HTTPAccount AdminPasswd_ss="$(pibinfo Pincode)"
+	/etc/rc.d/init.d/extra_lighttpd.sh start
+	
+	echo "opt.local start ok."
+}
+
+stop() {
+	/etc/rc.d/init.d/extra_lighttpd.sh stop
+
+	echo "opt.local stop ok."
+}
+
+status() {
+	/etc/rc.d/init.d/extra_lighttpd.sh status
+}
+
+
+case $action in
+	start)
+		start
+	;;
+	stop)
+		stop
+	;;
+	restart)
+		stop
+		sleep 1
+		start
+	;;
+	status)
+		status
+	;;
+	*)
+		showUsage
+	;;
+esac
+
+exit 0
