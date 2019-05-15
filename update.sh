@@ -87,6 +87,7 @@ if [ "$action" = "update" ]; then
 	size=$(grep '"userdata"' /proc/mtd |cut -f2 -d\ )
 	blocksize=$(grep '"userdata"' /proc/mtd |cut -f3 -d\ )
 	blocks=$(( 0x${size} / 0x${blocksize} ))
+	[ -z "$userdata" ] ||  [ -z "$size" ] ||  [ -z "$blocksize" ] || [ -z "$blocks" ] && exit 1
 	/usr/bin/flash_erase "$userdata" 0 ${blocks}
 	tar xOf "$enc_bin" update.aes | openssl aes-128-cbc -k `cat /tmp/update/aes.key` -nosalt -d | dd bs=$((0x${blocksize})) of="$userdata" > /dev/null 2> /dev/null || exit 1
 
