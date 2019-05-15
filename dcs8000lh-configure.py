@@ -9,7 +9,7 @@ import base64
 import hashlib
 from bluepy.btle import Peripheral
 
-VERSION = "9.9.9-bmork"
+VERSION = "0.02"
 
 # helper converting "K=V;L=W;.." strings to { "K": "V", "L": "W". ...} dicts
 def kv2dict(kvstr, sep=";"):
@@ -143,6 +143,7 @@ if __name__ == '__main__':
     parser.add_argument("--command", help="Run command on IPCam")
     parser.add_argument("--telnetd", help="Start telnet server on IPCam", action="store_true")
     parser.add_argument("--lighttpd", help="Start web server on IPCam", action="store_true")
+    parser.add_argument("--rtsp", help="Enable access to RTSP server on IPCam", action="store_true")
     parser.add_argument("--unsignedfw", help="Allow unsigned firmware", action="store_true")
     parser.add_argument("--attrs", help="Dump IPCam GATT characteristics", action="store_true")
     parser.add_argument("-V", "--version", action="version", version="%(prog)s " + VERSION)
@@ -170,8 +171,12 @@ if __name__ == '__main__':
         print("Starting telnetd")
         cam.run_command("pidof telnetd||telnetd")
     if args.lighttpd:
-        cam.run_command("[ $(tdb get HTTPServer Enable_byte) -eq 1 ] || tdb set HTTPServer Enable_byte=1")
+        cam.run_command('[ "$(tdb get HTTPServer Enable_byte)" -eq "1" ]||tdb set HTTPServer Enable_byte=1')
         cam.run_command("/etc/rc.d/init.d/extra_lighttpd.sh start")
+    if args.rtsp:
+        cam.run_command('[ "$(tdb get RTPServer RejectExtIP_byte)" -eq "0" ]||tdb set RTPServer RejectExtIP_byte=0')
+        cam.run_command('[ "$(tdb get RTPServer Authenticate_byte)" -eq "1" ]||tdb set RTPServer Authenticate_byte=1')
+        cam.run_command("/etc/rc.d/init.d/firewall.sh reload&&/etc/rc.d/init.d/rtspd.sh restart")
     if args.unsignedfw:
         cam.run_command("tdb set SecureFW _TrustLevel_byte=0")
     if args.attrs:
