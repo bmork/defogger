@@ -4,6 +4,7 @@
 
 PATH=$PATH:/opt
 export LD_LIBRARY_PATH=/opt:$LD_LIBRARY_PATH
+VERSION=$(cat /opt/version)
 
 die() {
 	echo $@
@@ -17,7 +18,7 @@ showUsage() {
 action=$1
 
 start() {
-	echo "opt.local start"
+	echo "opt.local version $VERSION"
 
 	echo "Make sure there is an admin account with the pincode as password"
 	grep -Eq ^admin: /etc/passwd || echo admin:x:0:0::/:/bin/sh >>/etc/passwd
@@ -26,22 +27,29 @@ start() {
 	echo "Starting telnetd"
 	pidof telnetd || telnetd
 
-	tdb set HTTPAccount AdminPasswd_ss="$(pibinfo Pincode)"
+	[ -n "$(tdb get HTTPAccount AdminPasswd_ss)" ] || tdb set HTTPAccount AdminPasswd_ss="$(pibinfo Pincode)"
 	/etc/rc.d/init.d/extra_lighttpd.sh start
-	
-	echo "opt.local start ok."
+
+	[ "$(tdb get RTPServer RejectExtIP_byte)" -eq "0" ] || {
+	    echo "Making RTSP accessible from the outside, with authentication enabled"
+	    tdb set RTPServer RejectExtIP_byte=0
+            [ "$(tdb get RTPServer Authenticate_byte)" -eq "1" ] || tdb set RTPServer Authenticate_byte=1
+            /etc/rc.d/init.d/firewall.sh reload
+	    /etc/rc.d/init.d/rtspd.sh restart
+	}
 }
 
 stop() {
+	killall -TERM telnetd
 	/etc/rc.d/init.d/extra_lighttpd.sh stop
-
-	echo "opt.local stop ok."
 }
 
 status() {
-	/etc/rc.d/init.d/extra_lighttpd.sh status
+    echo -n "telnetd pid is " &&  pidof telnetd
+    /etc/rc.d/init.d/extra_lighttpd.sh status
+    /etc/rc.d/init.d/firewall.sh status
+    /etc/rc.d/init.d/rtspd.sh status
 }
-
 
 case $action in
 	start)
