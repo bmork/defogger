@@ -3,3 +3,16 @@
 #*
 version
 opt.squashfs
+aes.key
+aes.key.rsa
+certificate.info
+fw.tar
+random-signkey.pem
+sign.sha1
+sign.sha1.rsa
+update.aes
+update.bin
+update.bin.aes
+update.sha1
+verify.key
+
