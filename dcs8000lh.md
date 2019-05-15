@@ -25,6 +25,11 @@ at the time of writing. But I assume this link stops working as soon
 as there is a newer version available.
 
 
+## Changelog
+
+* v0.01 (20190515) - initial published version
+* v0.02 (20190515) - added RTSP support and information
+
 ## Problem
 
 My D-Link DCS-8000LH came with firmware version 2.01.03 from factory.
@@ -42,8 +47,9 @@ except trusting the "mydlink" cloud service to do it for you.
 #### Primary goals achieved:
 
 * configuration of network and admin password via Bluetooth LE, without
-  registering with D-Link or using the "mydlink" app at all
+  registering with D-Link or using the [**mydlink**](https://www.mydlink.com) app at all
 * streaming MPEG-TS directly from camera over HTTP and HTTPS
+* direct RTSP streaming
 * NIPCA API configuration over HTTP and HTTPS, supporting settings
   like LED, nightmode, etc
 
@@ -116,7 +122,7 @@ $ ./dcs8000lh-configure.py -h
 usage: dcs8000lh-configure.py [-h] [--essid ESSID] [--wifipw WIFIPW]
                               [--survey] [--netconf] [--sysinfo]
                               [--command COMMAND] [--telnetd] [--lighttpd]
-                              [--unsignedfw] [--attrs] [-V]
+                              [--rtsp] [--unsignedfw] [--attrs] [-V]
                               address pincode
 
 IPCam Bluetooth configuration tool.
@@ -135,6 +141,7 @@ optional arguments:
   --command COMMAND  Run command on IPCam
   --telnetd          Start telnet server on IPCam
   --lighttpd         Start web server on IPCam
+  --rtsp             Enable access to RTSP server on IPCam
   --unsignedfw       Allow unsigned firmware
   --attrs            Dump IPCam GATT characteristics
   -V, --version      show program's version number and exit
@@ -258,32 +265,147 @@ Done.
    same kernel and rootfs as before the update, whatever version they
    were.  I.e., the firmware version does not change - only the
    "mydlink" version.
+   
+
+**NOTE**; You need to [build](#BuildFirmware) a **fw.tar** firmware
+update image first.
+
 ```
 $ curl --http1.0 -u admin:123456 --form upload=@fw.tar http://192.168.2.37/config/firmwareupgrade.cgi
 upgrade=ok
 ```
 
+See the section on [error handling](#Errors) if the upgrade request
+returned anything else.
+
+The camera will reboot automatically at this point, assuming the
+update was successful.  From now both with telnetd and lighttpd
+running, and with external access to the RTSP server. All services
+will use the same **admin:PIN Code** account for authentication.
+
+So we now have access to direct [streaming](#Streaming) over HTTP,
+HTTPS and RTSP without ever having been in contact with the
+[**mydlink**](https://www.mydlink.com) service!
+
+
+
+### <a name="Streaming"></a>Streaming video locally
+
+Which was the whole point of all this... We can now stream directly
+from the camera using for example:
+
+
+#### HTTP or HTTPS
+```
+vlc https://192.168.2.37/video/mpegts.cgi
+vlc https://192.168.2.37/video/flv.cgi
+```
+
+Authenticate using the **admin** user with **PIN Code** as password
+
+AFAICS, this camera does not support MJPEG encoding. But you can
+always use ffmpeg to transcode the H.264 anyway.  Looking closer at a
+stream sample:
+
+
+```
+$ curl --insecure -u admin:123456 https://192.168.2.37/video/mpegts.cgi>/tmp/stream
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0 93.1G    0  438k    0     0  92872      0  12d 11h  0:00:04  12d 11h 92853^C
+
+$ mediainfo /tmp/stream 
+General
+ID                                       : 1 (0x1)
+Complete name                            : /tmp/stream
+Format                                   : MPEG-TS
+File size                                : 500 KiB
+Duration                                 : 5 s 433 ms
+Overall bit rate mode                    : Variable
+Overall bit rate                         : 752 kb/s
+
+Video
+ID                                       : 257 (0x101)
+Menu ID                                  : 1 (0x1)
+Format                                   : AVC
+Format/Info                              : Advanced Video Codec
+Format profile                           : High@L4
+Format settings, CABAC                   : Yes
+Format settings, ReFrames                : 1 frame
+Format settings, GOP                     : M=1, N=30
+Codec ID                                 : 27
+Duration                                 : 5 s 450 ms
+Width                                    : 1 280 pixels
+Height                                   : 720 pixels
+Display aspect ratio                     : 16:9
+Frame rate mode                          : Variable
+Color space                              : YUV
+Chroma subsampling                       : 4:2:0
+Bit depth                                : 8 bits
+Scan type                                : Progressive
+
+Audio
+ID                                       : 256 (0x100)
+Menu ID                                  : 1 (0x1)
+Format                                   : AAC
+Format/Info                              : Advanced Audio Codec
+Format version                           : Version 2
+Format profile                           : LC
+Muxing mode                              : ADTS
+Codec ID                                 : 15
+Duration                                 : 3 s 456 ms
+Bit rate mode                            : Variable
+Channel(s)                               : 1 channel
+Channel positions                        : Front: C
+Sampling rate                            : 16.0 kHz
+Frame rate                               : 15.625 FPS (1024 spf)
+Compression mode                         : Lossy
+```
+
+
+#### RTSP
+
+Direct RTSP access is also supported, using the same **admin** user.
+
+The RTSP URLs are configurable, so the proper way to use RTSP is to
+first check the URL of the wanted profile using the NIPCA API:
+
+```
+$ curl -u admin:123456 --insecure 'https://192.168.2.37/config/rtspurl.cgi?profileid=1'
+profileid=1
+urlentry=live/profile.0
+video_codec=H264
+audio_codec=OPUS
+```
+
+and then connect to this RTSP URL:
+
+```
+$ vlc rtsp://192.168.2.37/live/profile.0
+```
+
+Note that persistent RTSP access can be enabled with original
+unmodified D-Link firmware, using the Bluetooth **--rtsp** option.
+This modifies the necessary settings.  The **rtspd** service is
+already started by default in the original firmware.
+
+So there is no need to mess with the firmware at all if all you want
+is RTSP.
+
+
+#### <a name="Errors"></a>Errors during firmware update via HTTP
+
 The **firmwareupgrade.cgi** script running in the camera isn't much
 smarter than the rest of the system, so there are a few important
-things to note here.  These are found by trial-and-error:
+things keep in mind.  These are found by trial-and-error:
+
  * HTTP/1.1 might not work - the firmwareupgrade.cgi script does not support **100 Continue** AFAICS
  * The firmware update image should be provided as a **file** input field from a form
  * The field name must be **upload**.
 
-Using the exact curl command as provided above, replcaing the PIN Code
-and IP address with the correct vaules for your camera, should
-work. Anything else might not.
-
-The camera will reboot automatically after a sucessful upgrade.  But
-from now both telnetd and lighttpd is automatically started on every
-boot. And there will also be an **admin:PIN Code** account for both.
-
-We now have local [http video streaming](#Streaming) without ever
-having been in contact with the [**mydlink**](https://www.mydlink.com)
-service!
-
-
-#### unexpected errors during firmware update via HTTP
+Use the exact curl command provided above, replacing only the PIN
+Code, IP address and firmware filename.  This should work.  Anything
+else might not.
 
 The camera must be manually rebooted by removing power or pressing
 reset if the firmware upgrade fails for any reason. The
@@ -300,7 +422,7 @@ firmware update intended for the specified hardware.  It must also be
 signed.  But the signing key can be unknown to the camera provided the
 previous **--unsignedfw** request above was successful.
 
-The [**Makefile**](Makefile) provided here shows how to build a valid firmware
+The [**Makefile**](Makefile) provided here shows how to [build](#BuildFirmware) a valid firmware
 update, but for the DCS-8000LH only!  It does not support any other
 model. It will create a new throwaway signing key if it canæt find a
 real one, and include the associated public key in the archive in case
@@ -310,7 +432,7 @@ Note that the encryption key might be model specific.  I do not know
 this as I have no other model to look at.  Please let me know if you
 have any information on this topic.
 
-The encryption key is part ot the **pib** partition, and can be
+The encryption key is part ot the [**pib**](#Partitions) partition, and can be
 read from a shell using
 ```
 pibinfo PriKey
@@ -338,9 +460,8 @@ source!  This includes
  * feature bits
  * private keys, pincode and passwords
 
-Well, OK, we can restore most of the **pib** using information from
-the [camera
-label](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label.jpg), but
+Well, OK, we can restore most of the [**pib**](#Partitions)  using information from
+the [camera label](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label.jpg), but
 it's better to avoid having to do that...
 
 A backup is also useful for analyzing the file systems offline.
@@ -1011,6 +1132,31 @@ The `HTTPServer Enable_byte` is persistent, so setting is only
 necessary once. Unless you do a factory reset.
 
 
+### What's the problem with the RTSP server in the unmodified firmware?
+
+The original D-Link firmware is already running **rtspd**, but it is only
+listening on the loopback address 127.0.0.1.  It is probably intended
+as a backend server for the **mydlink** services.
+
+We can make rtspd listen on all addresses by clearing the **RTPServer
+RejectExtIP** setting.  Both rtspd and the firewall need a restart for
+this to have an effect.  Enabling **RTPServer Authenticate** is
+probably a good idea when doing this, to prevent the camera from
+streaming to anyone who can connect.
+
+```
+tdb set RTPServer RejectExtIP_byte=0
+tdb set RTPServer Authenticate_byte=1
+/etc/rc.d/init.d/firewall.sh reload
+/etc/rc.d/init.d/rtspd.sh restart
+```
+
+These settings are persistent as usual, so they only need to be
+modified after factory resets. Changing the settings and then
+rebooting the camera will therefore enable remote RTSP access, since
+both services are running by default in the D-Link firmware.
+
+
 ### The "userdata" file system
 
 The [**userdata**](#Partitions) you backed up as **mtd2** contains a xz compressed
@@ -1113,8 +1259,36 @@ Google for more. Be aware that a most of these settings depend on the
 hardware.  There is obviously no point in trying to manage an SD card
 slot of the DCS-8000LH...
 
-A couple of examples, using curl to read and set configuration variables:
+A few of examples, using curl to read and set configuration variables:
 ```
+$ curl -u admin:123456 http://192.168.2.37/common/info.cgi
+model=DCS-8000LH
+product=Wireless Internet Camera
+brand=D-Link
+version=2.02
+build=02
+hw_version=A
+nipca=1.9.7
+name=DCS-8000LH
+location=
+macaddr=B0:C5:54:AA:BB:CC
+ipaddr=192.168.2.37
+netmask=255.255.255.0
+gateway=192.168.2.1
+wireless=yes
+inputs=0
+outputs=0
+speaker=no
+videoout=no
+pir=no
+icr=yes
+ir=yes
+mic=yes
+led=no
+td=no
+playing_music=no
+whitelightled=no
+
 $ curl -u admin:123456 'http://192.168.2.37/config/datetime.cgi' 
 method=1
 timeserver=ntp1.dlink.com
@@ -1136,80 +1310,6 @@ led=off
 Most camera settings can be controlled using this API and e.g curl for
 the command line.  There are also packages implementing API clients,
 like for example this nodejs one: https://www.npmjs.com/package/nipca
-
-
-
-### <a name="Streaming"></a>Streaming video locally
-
-The whole point of all this... We can now stream directly from the
-camera using for example:
-
-```
-vlc https://192.168.2.37/video/mpegts.cgi
-vlc https://192.168.2.37/video/flv.cgi
-```
-
-Again using the same admin/PIN Code user for authentication.
-
-AFAICS, this camera does not support MJPEG encoding. But yoy can
-always use ffmpeg to transcode the H.264 anyway.  Looking closer at a
-stream sample:
-
-
-```
-$ curl --insecure -u admin:123456 https://192.168.2.37/video/mpegts.cgi>/tmp/stream
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0 93.1G    0  438k    0     0  92872      0  12d 11h  0:00:04  12d 11h 92853^C
-
-$ mediainfo /tmp/stream 
-General
-ID                                       : 1 (0x1)
-Complete name                            : /tmp/stream
-Format                                   : MPEG-TS
-File size                                : 500 KiB
-Duration                                 : 5 s 433 ms
-Overall bit rate mode                    : Variable
-Overall bit rate                         : 752 kb/s
-
-Video
-ID                                       : 257 (0x101)
-Menu ID                                  : 1 (0x1)
-Format                                   : AVC
-Format/Info                              : Advanced Video Codec
-Format profile                           : High@L4
-Format settings, CABAC                   : Yes
-Format settings, ReFrames                : 1 frame
-Format settings, GOP                     : M=1, N=30
-Codec ID                                 : 27
-Duration                                 : 5 s 450 ms
-Width                                    : 1 280 pixels
-Height                                   : 720 pixels
-Display aspect ratio                     : 16:9
-Frame rate mode                          : Variable
-Color space                              : YUV
-Chroma subsampling                       : 4:2:0
-Bit depth                                : 8 bits
-Scan type                                : Progressive
-
-Audio
-ID                                       : 256 (0x100)
-Menu ID                                  : 1 (0x1)
-Format                                   : AAC
-Format/Info                              : Advanced Audio Codec
-Format version                           : Version 2
-Format profile                           : LC
-Muxing mode                              : ADTS
-Codec ID                                 : 15
-Duration                                 : 3 s 456 ms
-Bit rate mode                            : Variable
-Channel(s)                               : 1 channel
-Channel positions                        : Front: C
-Sampling rate                            : 16.0 kHz
-Frame rate                               : 15.625 FPS (1024 spf)
-Compression mode                         : Lossy
-```
-
 
 
 
@@ -1762,6 +1862,83 @@ and **firmwareupgrade.cgi** tools.  It uses an alternatative
 [**update.bin**](update.sh) made to modify only the [**userdata**](#Partitions) partition.  This
 way we can install our own code in the camera, but still leave the
 D-Link camera OS unmodified.
+
+
+#### <a name="BuildFirmware"></a>Bulding the example firmware update in this repo
+
+Rebuilding the example is as easy as typing **make**.  The Makefile is a
+noisy one, so you can see all that's going on:
+```
+$ make
+echo "WARNING: keys/DCS-8000LH-sign.pem is missing - using a new abitrary key instead"
+WARNING: keys/DCS-8000LH-sign.pem is missing - using a new abitrary key instead
+[ -f random-signkey.pem ] || openssl genrsa -out random-signkey.pem
+Generating RSA private key, 2048 bit long modulus (2 primes)
+...............................................................................................................................+++++
+........................................................................................................................................................+++++
+e is 65537 (0x010001)
+openssl rsa -pubout -in random-signkey.pem -out verify.key
+writing RSA key
+echo "Publisher:DMdssdFW1" >certificate.info
+echo "Supported Models:DCS-8000LH,DCS-8000LH" >>certificate.info
+echo "Firmware Version:1.0.0" >>certificate.info
+echo "Target:update.bin" >>certificate.info
+echo "Build No:9999" >>certificate.info
+echo "Contents:update" >>certificate.info
+openssl rand 16 > aes.key
+openssl rsautl -encrypt -in aes.key -inkey keys/DCS-8000LH-PriKey.pem -out aes.key.rsa
+sed -ne 's/"//g' -e 's/^VERSION *= *//p' dcs8000lh-configure.py >version
+mksquashfs version opt.local opt.squashfs -all-root -comp xz
+Parallel mksquashfs: Using 4 processors
+Creating 4.0 filesystem on opt.squashfs, block size 131072.
+[===============================================================================================================================================================================================================|] 2/2 100%
+
+Exportable Squashfs 4.0 filesystem, xz compressed, data block size 131072
+        compressed data, compressed metadata, compressed fragments, compressed xattrs
+        duplicates are removed
+Filesystem size 1.08 Kbytes (0.00 Mbytes)
+        60.69% of uncompressed filesystem size (1.79 Kbytes)
+Inode table size 98 bytes (0.10 Kbytes)
+        100.00% of uncompressed inode table size (98 bytes)
+Directory table size 46 bytes (0.04 Kbytes)
+        100.00% of uncompressed directory table size (46 bytes)
+Number of duplicate files found 0
+Number of inodes 3
+Number of files 2
+Number of fragments 1
+Number of symbolic links  0
+Number of device nodes 0
+Number of fifo nodes 0
+Number of socket nodes 0
+Number of directories 1
+Number of ids (unique uids + gids) 1
+Number of uids 1
+        root (0)
+Number of gids 1
+        root (0)
+openssl aes-128-cbc -md md5 -kfile aes.key -nosalt -e -out update.aes -in opt.squashfs
+*** WARNING : deprecated key derivation used.
+Using -iter or -pbkdf2 would be better.
+*** WARNING : deprecated key derivation used.
+Using -iter or -pbkdf2 would be better.
+sed  -e "s/@@MODEL@@/\"DCS-8000LH\"/" -e "s/@@MD5SUM@@/\"f1a1d3952c1630e5adb53e7f93b59d5e\"/" -e "s/@@VERSION@@/\"1.0.0-9999\"/" update.sh >update.bin
+openssl aes-128-cbc -md md5 -kfile aes.key -nosalt -e -out update.bin.aes -in update.bin
+*** WARNING : deprecated key derivation used.
+Using -iter or -pbkdf2 would be better.
+openssl dgst -sha1 update.aes | cut -d' ' -f2 > update.sha1
+cat update.bin.aes aes.key.rsa certificate.info update.sha1 | openssl dgst -sha1 | cut -d' ' -f2 > sign.sha1
+openssl rsautl -sign -inkey random-signkey.pem -out sign.sha1.rsa -in sign.sha1
+tar cvf fw.tar certificate.info aes.key.rsa sign.sha1.rsa update.aes update.bin.aes verify.key
+certificate.info
+aes.key.rsa
+sign.sha1.rsa
+update.aes
+update.bin.aes
+verify.key
+
+```
+
+This will produce a new **fw.tar** firmware update image.
 
 
 ## Contact
