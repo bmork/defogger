@@ -1,5 +1,7 @@
 # D-Link DCS-8000LH
 
+![D-Link DCS-8000LH](https://eu.dlink.com/uk/en/products/-/media/product-pages/dcs/8000lh/dcs_8000lh_front.png)
+
 These are random notes descibing how I changed my D-Link DCS-8000LH
 from a cloud camera to a locally managed IP camera, streaming H.264
 MPEG-TS over HTTP and HTTPS. Some of the tools and ideas might work
@@ -25,10 +27,10 @@ as there is a newer version available.
 
 ## Problem
 
-Got a new D-Link DCS-8000LH with firmware version 2.01.03 from factory.
-This firmware is locked to the "mydlink" app/cloud service.  It does
-not provide a local NIPCA compatible HTTP API or similar, and it does
-not stream video over HTTP, HTTPS or RTSP.
+My D-Link DCS-8000LH came with firmware version 2.01.03 from factory.
+This firmware is locked to the [**mydlink**](https://www.mydlink.com)
+app/cloud service.  It does not provide a local NIPCA compatible HTTP
+API or similar, and it does not stream video over HTTP, HTTPS or RTSP.
 
 Additionally, there is no way to downgrade the firmware.  In fact,
 there is no documented way to install any firmware image at all,
@@ -42,11 +44,13 @@ except trusting the "mydlink" cloud service to do it for you.
 * configuration of network and admin password via Bluetooth LE, without
   registering with D-Link or using the "mydlink" app at all
 * streaming MPEG-TS directly from camera over HTTP and HTTPS
-* HTTP API based configuration of most settings, like LED, nightmode, etc
+* NIPCA API configuration over HTTP and HTTPS, supporting settings
+  like LED, nightmode, etc
+
 
 #### And some extra goodies which came for free
 
-* Firmware upgrades and downgrades via HTTP API
+* Firmware upgrades and downgrades via HTTP
 * telnet server with a root account (admin/PIN Code)
 * easy access to serial console, using the same root account
 * running arbitrary commands on the camera using Bluetooth
@@ -57,7 +61,9 @@ Read on for all the gory details...
 ### Requirements
 
  * a Linux PC with a Bluetooth controller
- * python3 with the **bluepy** library: https://ianharvey.github.io/bluepy-doc/index.html
+ * python3 with @IanHarvey's
+  [**bluepy**](https://ianharvey.github.io/bluepy-doc/index.html)
+  library
  * WiFi network with WPA2-PSK and a known password
  * mksquashfs from the squashfs-tools package
  * a tftp server or web server accepting file uploads (for backups)
@@ -80,7 +86,7 @@ This was developed and tested on Debian Buster.
 The "mydlink" app uses Bluetooth LE for camera setup, authenticated by
 the camera pincode.  This repo includes an alternative python script
 with a few extra goodies, but needing a better name:
-**dcs8000lh-configure.py**.
+[**dcs8000lh-configure.py**](dcs8000lh-configure.py)
 
 (Why not an Android app?  Because it would take me much more time to
 write. Should be fairly easy to do though, for anyone with enough
@@ -89,12 +95,18 @@ the python code. Please let me know if you are interested)
 
 The script does not support scanning for the simple reason that this
 would require root access for not real gain.  You have to provide the
-**PIN Code** from the camera label anyway.  Reading the **MAC** as
-well is simple enough.
+**PIN Code** from the camera label
+anyway.  Reading the **MAC ID** as well is simple enough
+![camera label](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label.jpg)
 
-The command line *address* paramenter should be formatted as
-**01:23:45:67:89:AB**, and not like the **0123456789AB** format
-printed on the label.
+The **PIN Code** and **MAC** is also printed on the code card that
+came with the camera:
+![code card](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-code-card.jpg)
+
+
+Note that the command line **address** paramenter must be formatted as
+**01:23:45:67:89:AB** instead of the **0123456789AB** format printed
+on the label.
 
 Current script help text at the time of writing shows what the script
 can do:
@@ -190,9 +202,10 @@ Done.
 ```
 
 
-WARNING: You must make a backup of your device at this point if you
-haven't done so already.  See the backup section below.  I only skipped it
-in this example because I already had made a complete backup.
+**WARNING**: You must make a backup of your device at this point if
+you haven't done so already.  See the [**Backup**](#Backup) section
+below.  I only skipped it in this example because I already had a
+complete backup of my camera.
 
 
 
@@ -210,7 +223,7 @@ Done.
 ```
 
 Note that this implicitly changes a couple of settings which are
-stored in the "db" NVRAM partition, and therefore will persist until
+stored in the ["db"](#Partitions) NVRAM partition, and therefore will persist until
 the next factory reset:
  *  extra_lighttpd.sh will exit without doing anything unless
     **HTTPServer Enable** is set
@@ -218,15 +231,15 @@ the next factory reset:
    request, and because we need it for the HTTP API access.  The
    script only supports setting the password to the **PIN Code**.
    
-(This password restriction is because I'm lazy - there is nothing in
+*This password restriction is because I'm lazy - there is nothing in
 the camera or protocol preventing the password from being set to
 something else. But the script would then need the new password as
-an additional input parameter for most commands)
+an additional input parameter for most commands*
 
 
 5. Disable firmware signature verification. Only firmwares signed by
    D-Link are accepted by default. This feature can be disabled by
-   changing a variable in the "db" NVRAM partition:
+   changing a variable in the ["db"](#Partitions) NVRAM partition:
 
 ```
 $ ./dcs8000lh-configure.py B0:C5:54:AA:BB:CC 123456  --unsignedfw 
@@ -238,7 +251,7 @@ Done.
 ```
 
 6. The final step is the dangerous one.  It replaces the file system
-   on the **userdata** partition with our home cooked one.  The D-Link
+   on the [**userdata**](#Partitions) partition with our home cooked one.  The D-Link
    firmware uses this partition exclusively for the "mydlink" cloud
    tools, which we don't need.  The rest of the system is not touched
    by our firmware update.  The camera will therefore run exactly the
@@ -265,6 +278,10 @@ The camera will reboot automatically after a sucessful upgrade.  But
 from now both telnetd and lighttpd is automatically started on every
 boot. And there will also be an **admin:PIN Code** account for both.
 
+We now have local [http video streaming](#Streaming) without ever
+having been in contact with the [**mydlink**](https://www.mydlink.com)
+service!
+
 
 #### unexpected errors during firmware update via HTTP
 
@@ -283,7 +300,7 @@ firmware update intended for the specified hardware.  It must also be
 signed.  But the signing key can be unknown to the camera provided the
 previous **--unsignedfw** request above was successful.
 
-The **Makefile** provided here shows how to build a valid firmware
+The [**Makefile**](Makefile) provided here shows how to build a valid firmware
 update, but for the DCS-8000LH only!  It does not support any other
 model. It will create a new throwaway signing key if it canæt find a
 real one, and include the associated public key in the archive in case
@@ -298,19 +315,23 @@ read from a shell using
 ```
 pibinfo PriKey
 ```
+
 Or you can simply look at your partition backup.  The key is stored as
-a plain text *RSA PRIVATE KEY* PEM blob, so it is easy to spot.
+a plain text *RSA PRIVATE KEY* PEM blob, so it is easy to spot. This
+repo includes a copy of my [key](keys/DCS-8000LH-PriKey.pem) as I see
+no point in attempting to keep a well known shared key like this one
+"secret"
 
 
-### Backup
+### <a name="Backup"></a>Backup
 
 Create a backup of everything *before* you mess up.  Restoring will be
 hard anyway, so don't rely on that.  But you can forget about
 restoring at all unless you have a backup, so make it anyway.
 
-Note that the **pib** partition contains data which are specific to
-**your** camera, and cannot be restored from any other source!  This
-includes
+Note that the [**pib**](#Partitions) partition contains data which are
+specific to **your** camera, and cannot be restored from any other
+source!  This includes
  * model number
  * hardware revision
  * mac address
@@ -318,7 +339,9 @@ includes
  * private keys, pincode and passwords
 
 Well, OK, we can restore most of the **pib** using information from
-the camera label, but it's better to avoid having to do that...
+the [camera
+label](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label.jpg), but
+it's better to avoid having to do that...
 
 A backup is also useful for analyzing the file systems offline.
 
@@ -332,7 +355,6 @@ tools. Pick anyone you like:
  * wget
  * curl
  * ...and probably more
-
 
 I've been using tftp for my backups because it is simple. You'll
 obviously need a tftp server for this. Google for instructions on
@@ -388,18 +410,18 @@ for details.
 
 ### Restoring original D-Link firmware
 
-The D-Link firmware, including the mydlink tools in the **userdata**
-partition, can be restored by doing a manual firmware upgrade
-providing a firmware update from D-Link.  Real example, going back to
-v2.02.02:
+The D-Link firmware, including the mydlink tools in the
+[**userdata**](#Partitions) partition, can be restored by doing a
+manual firmware upgrade providing a firmware update from D-Link.  Real
+example, going back to v2.02.02:
 
 ```
 $ curl --http1.0 -u admin:123456 --form upload=@DCS-8000LH_Ax_v2.02.02_3014.bin http://192.168.2.37/config/firmwareupgrade.cgi
 curl: (52) Empty reply from server
 ```
 
-I don't know why I got that *Empty reply* warning instead of the
-expected *upgrade=ok*, but update went fine so I guess it can safely
+I don't know why I got that **Empty reply** warning instead of the
+expected **upgrade=ok**, but update went fine so I guess it can safely
 be ignored. Might be a side effect of rewriting the root file system,
 which the firmwareupgrade.cgi script is running from.
 
@@ -412,21 +434,52 @@ network configuration etc.
 
 There is a 4 hole female header with 2 mm spacing in the bottom of the
 camera. This header is easily accessible without opening the case at
-all. But you will need to remove the bottom label to find it. Take a
-picure, or save the information somewhere else, first, in case you
-make the label unreadable.
+all. But you will need to remove the bottom label to find it:
+![label removed](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label-removed.jpg)
+
+Take a picure of the lable or save the information somewhere else
+first, in case you make the it unreadable in the process.
 
 Mate with a 3 (or 4) pin male 2 mm connector, or use sufficiently
-solid wires.  The pins need to be 6-10 mm long.
+solid wires.  The pins need to be 6-10 mm long.  The pins will mess up the QR code, but the rest of the label can be left intact if you're careful:
+![header with pins](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label-with-serial-pins.jpg)
 
-The pinout seen from center to edge of camera is:
+The pinout seen from egde to center of camera  is:
 
- | GND | RX | TX |  3.3V |
+
+| 1    | 2  | 3  | 4   |
+|------|----|----|-----|
+| 3.3V | TX | RX | GND |
+
+and the serial port parameters are 57600 8N1.
+
 
 You obviously need a 3.3V TTL adapter for this, Look at for example
 at the generic OpenWrt console instructions if you need guidance.
+![USB ttl adapter connected](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-serial-connected.jpg)
 
-The serial port parameters are 57600 8N1
+
+Do not connect the 3.3V pin.  All USB TTL adapters are powered by the
+USB bus.
+
+
+
+### Opening the case
+
+Remove the top and bottom parts of the sylinder.  I assume the two
+remaning halves of the sylinder are simple held together by clips, but
+I did not verify this after discovering the easily accessible console
+header.
+
+The top lid is clipped on:
+![top lid](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-top-lid.jpg)
+
+The bottom cover is held in place by two screws under the label:
+![bottom cover](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-label-removed.jpg)
+
+
+Removing the bottom cover reveals the reset button and the console header:
+![bottom removed](https://www.mork.no/~bjorn/dcs8000lh/dcs8000lh-bottom-without-cover.jpg)
 
 
 ### U-Boot
@@ -540,9 +593,332 @@ from the shell. Use the much simpler Bluetooth procedure described
 above. Or the "mydlink" app if you prefer.
 
 
+### OEM boot log
+
+```
+U-Boot 2014.01-rc2-V1.1 (Jun 06 2018 - 03:44:37)
+
+rx5281 prid=0xdc02
+DRAM:  64 MiB @ 800 MHz
+Skipping flash_init
+Flash: 0 Bytes
+flash status is 0, 2, 0
+SF: Detected W25Q128FV with page size 256 Bytes, erase size 64 KiB, total 16 MiB
+Using default environment
+
+In:    serial
+Out:   serial
+Err:   serial
+Net:   Realtek PCIe GBE Family Controller mcfg = 0024
+no hw config header
+new_ethaddr = 00:00:00:00:00:00
+r8168#0
+no hw config header
+Press ESC to abort autoboot in 3 seconds## Booting kernel from Legacy Image at bc1e0000 ...
+get header OKimage_get_kernel check hcrc
+image_get_kernel print contents
+   Image Name:   linux_3.10
+   Created:      2018-06-05  19:44:27 UTC
+   Image Type:   MIPS Linux Kernel Image (uncompressed)
+   Data Size:    1662157 Bytes = 1.6 MiB
+   Load Address: 804d4960
+   Entry Point:  804d4960
+   Verifying Checksum ... OK
+   Loading Kernel Image ... OK
+
+Starting kernel ...
+
+Linux version 3.10.27 (jenkins@DMdssdFW1) (gcc version 4.8.5 20150209 (prerelease) (Realtek RSDK-4.8.5p1 Build 2278) ) #1 PREEMPT Wed Jun 6 03:36:32 CST 2018
+prom cpufreq = 500000000
+prom memsize = 67108864
+hw_ver: 0x1, hw_rev: 0x2, isp_ver: 0x0
+bootconsole [early0] enabled
+CPU revision is: 0000dc02
+Determined physical RAM map:
+ memory: 04000000 @ 00000000 (usable)
+Reserved contiguous memory at 0x4f3000
+Zone ranges:
+  Normal   [mem 0x00000000-0x03ffffff]
+Movable zone start for each node
+Early memory node ranges
+  node   0: [mem 0x00000000-0x03ffffff]
+icache: 32kB/32B, dcache: 16kB/32B, scache: 0kB/0B
+Built 1 zonelists in Zone order, mobility grouping on.  Total pages: 16256
+Kernel command line: console=ttyS1,57600 root=/dev/mtdblock8 rts_hconf.hconf_mtd_idx=0 mtdparts=m25p80:256k(boot),128k(pib),1024k(userdata),128k(db),128k(log),128k(dbbackup),128k(logbackup),3072k(kernel),11264k(rootfs)
+PID hash table entries: 256 (order: -2, 1024 bytes)
+Dentry cache hash table entries: 8192 (order: 3, 32768 bytes)
+Inode-cache hash table entries: 4096 (order: 2, 16384 bytes)
+Memory: 48600k/65536k available (3844k kernel code, 16936k reserved, 888k data, 192k init, 0k highmem)
+SLUB: HWalign=32, Order=0-3, MinObjects=0, CPUs=1, Nodes=1
+Preemptible hierarchical RCU implementation.
+NR_IRQS:49
+Calibrating delay loop... 498.89 BogoMIPS (lpj=2494464)
+pid_max: default: 32768 minimum: 301
+Mount-cache hash table entries: 512
+pinctrl core: initialized pinctrl subsystem
+regulator-dummy: no parameters
+NET: Registered protocol family 16
+rtsxb2 registered with IRQs
+INFO: initializing USB host ...
+INFO: initializing spi host ...0
+spi platform id is 0
+INFO: initializing I2C master ...
+INFO: initializing DMA controller ...
+INFO: initializing SD controller ...
+INFO: initializing snd device ...
+snd resvd mem size : 1048576
+INFO: initializing pinctrl device ...
+pinctrl_platform pinctrl_platform: rtspc registered with IRQs
+INFO: initializing ethernet devices ...
+INFO: initializing dwc_otg devices ...
+INFO: initializing USB phy ...
+INFO: initializing ISP device ...
+isp resvd mem addr : 0x005f3000, size : 0xa00000
+ISP camera platform devices added
+INFO: initializing watchdog controller ...
+INFO: initializing PWM controller ...
+INFO: initializing crypto device ...
+INFO: initializing pmu device ...
+bio: create slab <bio-0> at 0
+rts_dmac rts_dmac: DesignWare DMA Controller, 1 channels
+INFO: realtek DMA engine inited
+SCSI subsystem initialized
+spic-platform spic-platform.0: master is unqueued, this is deprecated
+INFO:allocate spi master 0, 0
+usbcore: registered new interface driver usbfs
+usbcore: registered new interface driver hub
+usbcore: registered new device driver usb
+usbphy-platform usbphy-platform: Initialized Realtek IPCam USB Phy module
+Linux video capture interface: v2.00
+Advanced Linux Sound Architecture Driver Initialized.
+Bluetooth: Core ver 2.16
+NET: Registered protocol family 31
+Bluetooth: HCI device and connection manager initialized
+Bluetooth: HCI socket layer initialized
+Bluetooth: L2CAP socket layer initialized
+Bluetooth: SCO socket layer initialized
+NET: Registered protocol family 2
+TCP established hash table entries: 512 (order: 0, 4096 bytes)
+TCP bind hash table entries: 512 (order: -1, 2048 bytes)
+TCP: Hash tables configured (established 512 bind 512)
+TCP: reno registered
+UDP hash table entries: 256 (order: 0, 4096 bytes)
+UDP-Lite hash table entries: 256 (order: 0, 4096 bytes)
+NET: Registered protocol family 1
+RPC: Registered named UNIX socket transport module.
+RPC: Registered udp transport module.
+RPC: Registered tcp transport module.
+RPC: Registered tcp NFSv4.1 backchannel transport module.
+squashfs: version 4.0 (2009/01/31) Phillip Lougher
+NFS: Registering the id_resolver key type
+Key type id_resolver registered
+Key type id_legacy registered
+jffs2: version 2.2. (NAND) © 2001-2006 Red Hat, Inc.
+msgmni has been set to 94
+NET: Registered protocol family 38
+Block layer SCSI generic (bsg) driver version 0.4 loaded (major 253)
+io scheduler noop registered
+io scheduler deadline registered
+io scheduler cfq registered (default)
+Serial: 8250/16550 driver, 3 ports, IRQ sharing disabled
+serial8250: ttyS0 at MMIO 0x18810000 (irq = 6) is a 16550A
+console [ttyS1] enabled, bootconsole disabled
+console [ttyS1] enabled, bootconsole disabled
+serial8250: ttyS1 at MMIO 0x18810100 (irq = 6) is a 16550A
+serial8250: ttyS2 at MMIO 0x18810200 (irq = 6) is a 16550A
+dbg_iomem initialized!
+m25p80 spi0.0: unrecognized id mx25l12845e
+m25p80 spi0.0: found w25q128fv, expected m25p80
+m25p80 spi0.0: w25q128fv (16384 Kbytes)
+9 cmdlinepart partitions found on MTD device m25p80
+Creating 9 MTD partitions on "m25p80":
+0x000000000000-0x000000040000 : "boot"
+0x000000040000-0x000000060000 : "pib"
+0x000000060000-0x000000160000 : "userdata"
+0x000000160000-0x000000180000 : "db"
+0x000000180000-0x0000001a0000 : "log"
+0x0000001a0000-0x0000001c0000 : "dbbackup"
+0x0000001c0000-0x0000001e0000 : "logbackup"
+0x0000001e0000-0x0000004e0000 : "kernel"
+0x0000004e0000-0x000000fe0000 : "rootfs"
+invalid hconf_mtd_idx!
+hconf init failed
+rtl8168 Gigabit Ethernet driver 8.038.00-NAPI loaded
+rtl8168 rtl8168 (unregistered net_device): Get invalid MAC address from flash!
+eth%d: 0xb8400000, 00:00:00:00:00:00, IRQ 10
+PPP generic driver version 2.4.2
+PPP MPPE Compression module registered
+NET: Registered protocol family 24
+ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+ehci-rts: ehci-rts platform driver
+ehci-platform ehci-platform: EHCI Host Controller
+ehci-platform ehci-platform: new USB bus registered, assigned bus number 1
+ehci-platform ehci-platform: irq 11, io mem 0x18100000
+ehci-platform ehci-platform: USB 2.0 started, EHCI 1.00
+usb usb1: New USB device found, idVendor=1d6b, idProduct=0002
+usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb1: Product: EHCI Host Controller
+usb usb1: Manufacturer: Linux 3.10.27 ehci_hcd
+usb usb1: SerialNumber: ehci-platform
+hub 1-0:1.0: USB hub found
+hub 1-0:1.0: 1 port detected
+ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+ohci-platform ohci-platform: Generic Platform OHCI Controller
+ohci-platform ohci-platform: new USB bus registered, assigned bus number 2
+ohci-platform ohci-platform: irq 11, io mem 0x18180000
+usb usb2: New USB device found, idVendor=1d6b, idProduct=0001
+usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+usb usb2: Product: Generic Platform OHCI Controller
+usb usb2: Manufacturer: Linux 3.10.27 ohci_hcd
+usb usb2: SerialNumber: ohci-platform
+hub 2-0:1.0: USB hub found
+hub 2-0:1.0: 1 port detected
+dwc_otg: version 3.10b 20-MAY-2013
+Core Release: 3.10a
+Setting default values for core params
+WARN::dwc_otg_set_param_dev_tx_fifo_size:6354: Value is larger then power-on FIFO size
+
+WARN::dwc_otg_set_param_dev_tx_fifo_size:6354: Value is larger then power-on FIFO size
+
+Using Buffer DMA mode
+Periodic Transfer Interrupt Enhancement - disabled
+Multiprocessor Interrupt Enhancement - disabled
+OTG VER PARAM: 0, OTG VER FLAG: 0
+Shared Tx FIFO mode
+usbcore: registered new interface driver usb-storage
+g_mass_storage gadget: Mass Storage Function, version: 2009/09/11
+g_mass_storage gadget: Number of LUNs=1
+ lun0: LUN: removable file: (no medium)
+g_mass_storage gadget: Mass Storage Gadget, version: 2009/09/11
+g_mass_storage gadget: g_mass_storage ready
+usb device pull 1
+i2c /dev entries driver
+Unable to read RTP_REG_CHIP_VERSION reg
+rtp_mfd 0-0030: pre_init() failed: -140
+rtp_mfd: probe of 0-0030 failed with error -140
+Stopped watchdog timer
+timer margin: 8 sec
+nf_conntrack version 0.5.0 (759 buckets, 3036 max)
+ip_tables: (C) 2000-2006 Netfilter Core Team
+TCP: cubic registered
+NET: Registered protocol family 17
+Bluetooth: RFCOMM TTY layer initialized
+Bluetooth: RFCOMM socket layer initialized
+usb 1-1: new high-speed USB device number 2 using ehci-platform
+Bluetooth: RFCOMM ver 1.11
+Bluetooth: BNEP (Ethernet Emulation) ver 1.3
+Bluetooth: BNEP filters: protocol multicast
+Bluetooth: BNEP socket layer initialized
+Key type dns_resolver registered
+ALSA device list:
+  No soundcards found.
+VFS: Mounted root (squashfs filesystem) readonly on device 31:8.
+Freeing unused kernel memory: 192K (804b0000 - 804e0000)
+usb 1-1: New USB device found, idVendor=0bda, idProduct=b720
+usb 1-1: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+usb 1-1: Product: 802.11n WLAN Adapter
+usb 1-1: Manufacturer: Realtek
+usb 1-1: SerialNumber: 00e04c000001
+init started: BusyBox v1.22.1 (2018-06-06 03:10:44 CST)
+starting pid 54, tty '': '/etc/rc.d/rcS start'
+mount: mounting none on /proc/bus/usb failed: No such file or directory
+rm: can't remove '/dev/mtd9': No such file or directory
+mknod: /dev/console: File exists
+soc-audio soc-audio.0: ASoC: machine RLX_INTERN_CARD should use snd_soc_register_card()
+soc-audio soc-audio.0:  rlx-codec-digital <-> pcm-platform mapping ok
+soc-audio soc-audio.0:  rlx-codec-analog <-> pcm-platform mapping ok
+pinctrl_platform pinctrl_platform: request() failed for pin 0
+pinctrl_platform pinctrl_platform: pin-0 (pinctrl-rts:0) status -16
+request GPIO failed
+sd-platform: probe of rts3901-sdhc failed with error -16
+rtscam:rtscam_soc_probe
+rtscam:rtscam_hx280_probe
+rtscam:hx280enc:HW at base <0x18060000> with ID <0x48314810>
+rtscam:rtscam_jpgenc_probe
+rtscam:rtstream_init
+rtscam:begin to load fw from isp.fw
+rtscam:Load firmware size : 131072.
+rtscam:Found ISP 1.006 device
+rtscam:video device <rts3901-isp> registered
+rtscam:rts3901-isp initialized
+Setup db... ok.
+Startting dbd... Password for 'root' changed
+ok.
+set the date to default:
+Wed Jun  6 00:00:00 UTC 2018
+No SD Device Path Exists.
+rc.sysinit start ok.
+============ normal mode ===============
+dbd(181) is already running.
+Startting tz_dst... ok.
+setsystz ok
+Startting watchDog... ok.
+Startting avcd... 
+mic vol = 80
+avcd ok.
+starting create_certificate...get server.pem... ok.
+Startting dbus-daemon... ok.
+Startting bluetoothd... sendCmd : 0
+Open /tmp/ap_list fail: No such file or directory
+main[283] Fail to get channel of Kjellerbod network
+configure : 
+ 			Wireless : essid: Kjellerbod, encryp_method: AES, auth_method: WPA2PSK 
+ 			Network  : dhcp_enable: 1, hostname: DCS-8000LH 
+Open /proc/sys/net/ipv6/conf/wlan0/autoconf fail: No such file or directory
+killall: rtspd: no process killed
+killall: udhcpc: no process killed
+killall: wifiAutoReconnect: no process killed
+sendCmd : 0
+sendCmd : 0
+/bin/sh: dibbler-client: not found
+killall: orthrus: no process killed
+killall: orthrusipv6: no process killed
+killall: pppd: no process killed
+killall: zcip: no process killed
+wlan1 MAC [b2:c5:54:4c:cc:73]
+23186 wpa_supplicant -B -c /tmp/wpa_supplicant.conf -i wlan0 -P /tmp/wpa_supplicant.pid
+rfkill: Cannot open RFKILL control device
+ioctl[SIOCSIWAP]: Operation not permitted
+udhcpc (v1.22.1) started
+/sbin/udhcpc.sh: line 1: /etc/rc.d/init.d/zcip.sh: not found
+Sending discover...
+Sending discover...
+Sending select for 192.168.2.37...
+Lease of 192.168.2.37 obtained, lease time 432000
+ifdown: interface wlan1 not configured
+cat: can't open '/tmp/wifi-led.pid': No such file or directory
+sh: you need to specify whom to kill
+deleting routers
+route: ioctl 0x890c failed: No such process
+adding dns 148.122.16.253
+adding dns 148.122.164.253
+start network services, ...
+Startting mDNSResponder... ok.
+Starting rtspd... ok.
+Startting ntpd... disabled.
+Startting firewall...ok.
+/etc/rc.d/rcS: /etc/rc.d/rcS.d/S24network.sh: line 5: /etc/rc.d/init.d/network_services_ipv6.sh: not found
+Starting Apple Darwin Multicast DNS / DNS Service Discovery daemon: mdnsd.
+Jun  6 02:00:32 mDNSResponder: mDNSResponder (Engineering Build) (Jun  6 2018 03:55:36) starting
+Jun  6 02:00:32 mDNSResponder: mDNS_AddDNSServer: Lock not held! mDNS_busy (0) mDNS_reentrancy (0)
+Jun  6 02:00:32 mDNSResponder: mDNS_AddDNSServer: Lock not held! mDNS_busy (0) mDNS_reentrancy (0)
+Jun  6 02:00:32 mDNSResponder: WARNING: mdnsd continuing as root because user "nobody" does not exist
+Startting ntpd... disabled.
+Startting db_analysis... ok.
+Startting firewall...ok.
+rtspd(1011 878) is already running.
+Startting myDlinkEvent... ok.
+2018-06-06 02:00:37 | INFO    | tcp_listen               |  176| listening 127.0.0.1:7000
+2018-06-06 02:00:37 | INFO    | http_listen              |   40| waiting new connections ...
+rc.local start ok.
+starting pid 1157, tty '': '/bin/busybox getty -L ttyS1 57600 vt100'
+
+localhost login: May  6 22:34:35 mDNSResponder: mDNS_Execute: mDNSPlatformRawTime went backwards by 438780374 ticks; setting correction factor to -1542198966
+May  6 22:34:37 mDNSResponderPosix: mDNSCoreReceive: mDNSPlatformRawTime went backwards by 438777274 ticks; setting correction factor to 1206127822
+```
 
 
-### Partitions
+### <a name="Partitions"></a>Partitions
 
 The D-Link DCS-8000LH partitions are:
 ```
@@ -577,6 +953,7 @@ Creating 9 MTD partitions on "m25p80":
 Partition usage:
 
  | number | name        | start    | end      | size     | fstype   | contents          |
+ | ------ | ----------- | -------- | -------- | -------- | -------- | ---------------   |
  | 0      | "boot"      | 0x000000 | 0x040000 | 0x40000  | boot     | U-Boot            |
  | 1      | "pib"       | 0x040000 | 0x060000 | 0x20000  | raw      | device info       |
  | 2      | "userdata"  | 0x060000 | 0x160000 | 0x100000 | squashfs | mydlink (/opt)    |
@@ -604,7 +981,7 @@ erase blocks.
 ### Backing up dynamic data
 
 This is not necessary for system operation as any non-volatile data is
-saved in the **db** partition anyway.  But it can still be useful to
+saved in the [**db**](#Partitions) partition anyway.  But it can still be useful to
 have a copy of the system state for offline studying, so I also like
 to save a working copy of /tmp:
 ```
@@ -636,7 +1013,7 @@ necessary once. Unless you do a factory reset.
 
 ### The "userdata" file system
 
-The **userdata** you backed up as **mtd2** contains a xz compressed
+The [**userdata**](#Partitions) you backed up as **mtd2** contains a xz compressed
 squasfs file system, with most of the mydlink cloud tools. The file
 system can be unpacked on a Linux system using unsquashfs:
 ```
@@ -675,9 +1052,10 @@ lrwxrwxrwx  1 bjorn bjorn     17 May 13 15:13 lib -> /var/libevent/lib
 The primary entry point here is the **opt.local** init-script.  This
 is also the only required file.  The **version** file is read by the
 Bluetooth API, and reported as the mydlink version, which makes it
-useful for verifying a modified camera.  Our alternate **userdata**
-file system contains only these two files. But one could imagine
-including a number of other useful tools, like tcpdump, a ssh server etc.
+useful for verifying a modified camera.  Our alternate
+[**userdata**](#Partitions) file system contains only these two
+files. But one could imagine including a number of other useful tools,
+like tcpdump, a ssh server etc.
 
 It is also possible to keep all the D-Link files, if that's
 wanted. The original **opt.local** script can be modified to leave
@@ -711,7 +1089,7 @@ you stop any process running from the previous /opt system and remount
 it properly.
 
 
-### Using NIPCA to manage the camera
+### <a name="NIPCA"></a>Using NIPCA to manage the camera
 
 The local web server provides a direct camera management API, but not
 a web GUI application. All API requests require authentication. We
@@ -719,9 +1097,23 @@ have added a single admin user, using the pincode from the camera
 label as passord.  More users can be adding if necessary, even by
 using the API itself.
 
-Google for the NIPCA reference spec, or look at the script names under
-/var/www and try them out.  Some examples:
+Read the NIPCA reference spec for usage, or look at the script names
+under **/var/www** in the [**rootfs**](#Partitions) and simply try
+them out. Most API endpoints return a list of current settings. Some
+of the settings can be set by GET requests by providing the new values
+as URL parameters.
 
+A few NIPCA references of different age:
+ * http://gurau-audibert.hd.free.fr/josdblog/wp-content/uploads/2013/09/CGI_2121.pdf
+ * https://docplayer.net/33354138-Network-ip-camera-application-programming-interface-nipca.html
+ * ftp://ftp.dlink.net.pl/dcs/dcs-2132L/documentation/DCS-2132L_NIPCA_support table_1-9-5_20131211.pdf
+ * https://www.airlivecam.eu/data/IP%20Camera%20Open%20API.doc
+
+Google for more. Be aware that a most of these settings depend on the
+hardware.  There is obviously no point in trying to manage an SD card
+slot of the DCS-8000LH...
+
+A couple of examples, using curl to read and set configuration variables:
 ```
 $ curl -u admin:123456 'http://192.168.2.37/config/datetime.cgi' 
 method=1
@@ -740,10 +1132,14 @@ stoptime=11.1.0/02:00:00
 $ curl -u admin:123456 http://192.168.2.37/config/led.cgi?led=off
 led=off
 ```
-There are lots of settings which can be controlled using this API.
+
+Most camera settings can be controlled using this API and e.g curl for
+the command line.  There are also packages implementing API clients,
+like for example this nodejs one: https://www.npmjs.com/package/nipca
 
 
-### Streaming video locally
+
+### <a name="Streaming"></a>Streaming video locally
 
 The whole point of all this... We can now stream directly from the
 camera using for example:
@@ -754,6 +1150,66 @@ vlc https://192.168.2.37/video/flv.cgi
 ```
 
 Again using the same admin/PIN Code user for authentication.
+
+AFAICS, this camera does not support MJPEG encoding. But yoy can
+always use ffmpeg to transcode the H.264 anyway.  Looking closer at a
+stream sample:
+
+
+```
+$ curl --insecure -u admin:123456 https://192.168.2.37/video/mpegts.cgi>/tmp/stream
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0 93.1G    0  438k    0     0  92872      0  12d 11h  0:00:04  12d 11h 92853^C
+
+$ mediainfo /tmp/stream 
+General
+ID                                       : 1 (0x1)
+Complete name                            : /tmp/stream
+Format                                   : MPEG-TS
+File size                                : 500 KiB
+Duration                                 : 5 s 433 ms
+Overall bit rate mode                    : Variable
+Overall bit rate                         : 752 kb/s
+
+Video
+ID                                       : 257 (0x101)
+Menu ID                                  : 1 (0x1)
+Format                                   : AVC
+Format/Info                              : Advanced Video Codec
+Format profile                           : High@L4
+Format settings, CABAC                   : Yes
+Format settings, ReFrames                : 1 frame
+Format settings, GOP                     : M=1, N=30
+Codec ID                                 : 27
+Duration                                 : 5 s 450 ms
+Width                                    : 1 280 pixels
+Height                                   : 720 pixels
+Display aspect ratio                     : 16:9
+Frame rate mode                          : Variable
+Color space                              : YUV
+Chroma subsampling                       : 4:2:0
+Bit depth                                : 8 bits
+Scan type                                : Progressive
+
+Audio
+ID                                       : 256 (0x100)
+Menu ID                                  : 1 (0x1)
+Format                                   : AAC
+Format/Info                              : Advanced Audio Codec
+Format version                           : Version 2
+Format profile                           : LC
+Muxing mode                              : ADTS
+Codec ID                                 : 15
+Duration                                 : 3 s 456 ms
+Bit rate mode                            : Variable
+Channel(s)                               : 1 channel
+Channel positions                        : Front: C
+Sampling rate                            : 16.0 kHz
+Frame rate                               : 15.625 FPS (1024 spf)
+Compression mode                         : Lossy
+```
+
 
 
 
@@ -918,33 +1374,33 @@ but this can be a bit cumbersome unless you are fluent in ASCII coding
 
 
 
-#### Description of the IPCam characteristics
+#### The IPCam characteristics
+
+Guessed meanings of each characteristic, based on the source code and
+some trial and error. Not necessarily how D-Link would describe them:
 
 
-Guessing the meaning of each characteristic, based on the source code
-and some trial and error:
-
-
- | UUID | op     | description     | format                                  | keys                                                                                                            |
- | A000 | read   | last status     | C=%d;A=%d;R=%d                          | C: uuid, A: mode, R: state                                                                                      |
- | A000 | notify | last status     | C=%d;A=%d;R=%d                          | C: uuid, A: mode, R: state                                                                                      |
- | A001 | read   | challenge       | M=%d;C=%s                               | M: opmode, C: challenge                                                                                         |
- | A001 | write  | auth            | M=%d;K=%s                               | M: opmode, K: key                                                                                               |
- | A100 | read   | wifi survey     | N=%d;P=%d;...                           |                                                                                                                 |
- | A101 | read   | wifi config     | M=%s;I=%s;S=%s;E=%s                     | M: opmode, I: essid, S: 4 , E: 2                                                                                |
- | A101 | write  | wifi config     | M=%s;I=%s;S=%s;E=%s;K=%s                | M: opmode, I: essid, S: 4 , E: 2, K: password                                                                   |
- | A102 | write  | wifi connect    | C=%d                                    | C: connect (0/1)                                                                                                |
- | A103 | read   | wifi status     | S=%d                                    | S: wifi link status (0,1,?)                                                                                     |
- | A104 | read   | ip config       | I=%s;N=%s;G=%s;D=%s                     | I: address, N: netmask, G: gateway, D: DNS-server                                                               |
- | A200 | read   | system info     | N=%s;P=%d;T=%d;Z=%s;F=%s;H=%s;M=%s;V=%s | N: devicename, P: haspin (0/1), T: time (unix epoch), Z: timezone, F: fwver, H: hwver, M: macaddr, V:mydlinkver |
- | A200 | write  | name and time   | N=%s;T=%d;Z=%s                          | N: devicename, T: time (unix epoch), Z: timezone                                                                |
- | A201 | write  | admin password  | P=%s;N=%s                               | P: current password, N: new password                                                                  |
- | A300 | read   | reg state       | G=%d                                    | G: registration state (0/1)                                                                                     |
- | A300 | write  | reg state       | G=%d                                    | G: registration state (0/1)                                                                                     |
- | A301 | read   | provisioning    | N=%s;T=%s;U=%s                          | N: username, T: footprint, U: portal                                                                            |
- | A302 | write  | restart mydlink | C=%d                                    | C: restart (0/1)                                                                                                |
- | A303 | write  | register        | S=%s;M=%s                               | S: , M:  (written to /tmp/mydlink/reg_info, and then kill -USR1 `pidof da_adaptor`)                             |
- | A304 | read   | register        | S=%d;E=%d                               | S: , E:  (cat /tmp/mydlink/reg_st)                                                                              |
+| UUID | op     | description     | format                                  | keys                                                                                                            |
+| ---- | ------ | --------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| A000 | read   | last status     | C=%d;A=%d;R=%d                          | C: uuid, A: mode, R: state                                                                                      |
+| A000 | notify | last status     | C=%d;A=%d;R=%d                          | C: uuid, A: mode, R: state                                                                                      |
+| A001 | read   | challenge       | M=%d;C=%s                               | M: opmode, C: challenge                                                                                         |
+| A001 | write  | auth            | M=%d;K=%s                               | M: opmode, K: key                                                                                               |
+| A100 | read   | wifi survey     | N=%d;P=%d;...                           |                                                                                                                 |
+| A101 | read   | wifi config     | M=%s;I=%s;S=%s;E=%s                     | M: opmode, I: essid, S: 4 , E: 2                                                                                |
+| A101 | write  | wifi config     | M=%s;I=%s;S=%s;E=%s;K=%s                | M: opmode, I: essid, S: 4 , E: 2, K: password                                                                   |
+| A102 | write  | wifi connect    | C=%d                                    | C: connect (0/1)                                                                                                |
+| A103 | read   | wifi status     | S=%d                                    | S: wifi link status (0,1,?)                                                                                     |
+| A104 | read   | ip config       | I=%s;N=%s;G=%s;D=%s                     | I: address, N: netmask, G: gateway, D: DNS-server                                                               |
+| A200 | read   | system info     | N=%s;P=%d;T=%d;Z=%s;F=%s;H=%s;M=%s;V=%s | N: devicename, P: haspin (0/1), T: time (unix epoch), Z: timezone, F: fwver, H: hwver, M: macaddr, V:mydlinkver |
+| A200 | write  | name and time   | N=%s;T=%d;Z=%s                          | N: devicename, T: time (unix epoch), Z: timezone                                                                |
+| A201 | write  | admin password  | P=%s;N=%s                               | P: current password, N: new password                                                                            |
+| A300 | read   | reg state       | G=%d                                    | G: registration state (0/1)                                                                                     |
+| A300 | write  | reg state       | G=%d                                    | G: registration state (0/1)                                                                                     |
+| A301 | read   | provisioning    | N=%s;T=%s;U=%s                          | N: username, T: footprint, U: portal                                                                            |
+| A302 | write  | restart mydlink | C=%d                                    | C: restart (0/1)                                                                                                |
+| A303 | write  | register        | S=%s;M=%s                               | S: , M:  (written to /tmp/mydlink/reg_info, and then kill -USR1 `pidof da_adaptor`)                             |
+| A304 | read   | register        | S=%d;E=%d                               | S: , E:  (cat /tmp/mydlink/reg_st)                                                                              |
 
 
 The UUIDs from 0xA300 to 0xA304 are all related to the mydlink cloud
@@ -1061,7 +1517,7 @@ But this request is much more useful in other ways.... The new passord
 (N_str) is processed like this (after slight compression of the
 interesting code lines):
 
-```
+```C
 	snprintf(cmd, sizeof(cmd), "mdb set admin_passwd %s", N_str);
 	snprintf(cmdbuf, sizeof(cmdbuf), "%s > %s 2>&1", cmd, p_name);
 	fp = popen(cmdbuf, "r");
@@ -1161,7 +1617,7 @@ Not much we can do about this then.  Or so it seems...  Until we look
 at **firmwareupgrade.cgi**, or **fwupdate** which has almost the same
 code:
 
-```
+```sh
 verifyFirmware() {
 	result=uploadSign
 	#tar tf "$UPLOADBIN" > /dev/null 2> /dev/null || return 1
@@ -1267,7 +1723,7 @@ illustrated by this code from **fwupdate** (there is code with similar
 functionality in **firmwareupgrade.cgi**):
 
 
-```
+```sh
         TrustLevel=`tdb get SecureFW _TrustLevel_byte`
         verifyFirmware
         ret=$?
@@ -1291,19 +1747,19 @@ functionality in **firmwareupgrade.cgi**):
 So we don't need to sign the firmware if we change the **SecureFW
 _TrustLevel** setting.  Or we can even sign it with a key unknown to
 the camera if we like.  Which can be useful if we ever replace the
-**rootfs**, since it will allow us to install our own verification
+[**rootfs**]](#Partitions), since it will allow us to install our own verification
 key and use it with D-Links tools.
 
 But what about the encryption?  This cannot be disabled.  This gets
 even better: The decrypting key so graciously provided to us in the
-**pib** partition is an RSA private key. So not only can we decrypt
+[**pib**](#Partitions) partition is an RSA private key. So not only can we decrypt
 the firmware with it, but we can also encrypt! Nice.
 
 
-The **Makefile** in this repo has examples of how to use this to
+The [**Makefile**](Makefile) in this repo has examples of how to use this to
 create firmware update images which are accepted by the **fwupdate**
 and **firmwareupgrade.cgi** tools.  It uses an alternatative
-**update.bin** made to modify only the **userdata** partition.  This
+[**update.bin**](update.sh) made to modify only the [**userdata**](#Partitions) partition.  This
 way we can install our own code in the camera, but still leave the
 D-Link camera OS unmodified.
 
