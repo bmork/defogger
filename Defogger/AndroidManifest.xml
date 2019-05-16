@@ -1,0 +1,11 @@
+<?xml version='1.0'?>
+<manifest xmlns:a='http://schemas.android.com/apk/res/android' package='no.mork.defogger' a:versionCode='0' a:versionName='0'>
+    <application a:label='A Hello Android'>
+        <activity a:name='no.mork.defogger.MainActivity'>
+             <intent-filter>
+                <category a:name='android.intent.category.LAUNCHER'/>
+                <action a:name='android.intent.action.MAIN'/>
+             </intent-filter>
+        </activity>
+    </application>
+</manifest>
