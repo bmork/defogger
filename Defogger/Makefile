@@ -18,7 +18,7 @@ RES=$(addprefix res/,$(RESOURCES))
 
 CLASSES=R.class MainActivity.class
 
-all: bin/defogger.apk
+all: defogger.apk
 
 src/no/mork/defogger/R.java: AndroidManifest.xml $(RES)
 	aapt package -f -m -J src -M AndroidManifest.xml -S res -I $(SDKCLASSPATH)
@@ -29,16 +29,16 @@ obj/%.class: src/no/mork/defogger/%.java
 classes.dex: $(addprefix obj/,$(CLASSES))
 	$(DX) --dex --output=$@ obj
 
-bin/defogger.unaligned.apk: classes.dex AndroidManifest.xml
+defogger.apk.unsigned: classes.dex AndroidManifest.xml
 	aapt package -f -m -F $@ -M AndroidManifest.xml -S res -I $(SDKCLASSPATH)
 	aapt add $@ classes.dex
-
 
 defogger.keystore:
 	keytool -storepass $(KEYPASS) -keypass $(KEYPASS) -genkeypair -alias defogger -dname "dc=no, dc=mork, cn=defogger" -validity 365 -keystore $@ -keyalg EC -keysize 256 -sigalg SHA256withECDSA
 
-bin/defogger.apk: bin/defogger.unaligned.apk defogger.keystore
-	apksigner sign -ks defogger.keystore -ks-pass "pass:$(KEYPASS)" -key-pass "pass:$(KEYPASS)" -out $@ bin/defogger.unaligned.apk
+defogger.apk: defogger.keystore defogger.apk.unsigned
+	apksigner sign --v2-signing-enabled false --ks defogger.keystore --ks-pass "pass:$(KEYPASS)" --key-pass "pass:$(KEYPASS)"  --out $@.unaligned defogger.apk.unsigned
+	zipalign -f 4 $@.unaligned $@
 
 clean:
-	rm -f src/no/mork/defogger/R.java $(addprefix obj/,$(CLASSES)) classes.dex
+	rm -f src/no/mork/defogger/R.java $(addprefix obj/,$(CLASSES)) classes.dex *.unsigned *.unaligned *.apk
