@@ -1,8 +1,8 @@
 <?xml version='1.0'?>
-<manifest xmlns:a='http://schemas.android.com/apk/res/android' package='no.mork.defogger' a:versionCode='0' a:versionName='0'>
+<manifest xmlns:a='http://schemas.android.com/apk/res/android' package='no.mork.android.defogger' a:versionCode='0' a:versionName='0'>
   <uses-sdk a:minSdkVersion="18" />
     <application a:label='Defogger'>
-        <activity a:name='no.mork.defogger.MainActivity'>
+        <activity a:name='no.mork.android.defogger.MainActivity'>
              <intent-filter>
                 <category a:name='android.intent.category.LAUNCHER'/>
                 <action a:name='android.intent.action.MAIN'/>

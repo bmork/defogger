@@ -1,4 +1,4 @@
-package no.mork.defogger;
+package no.mork.android.defogger;
 
 import android.app.Activity;
 import android.os.Bundle;
