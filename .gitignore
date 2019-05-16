@@ -1,6 +1,7 @@
 *~
-.#*
-#*
+*.swp
+.\#*
+\#*
 version
 opt.squashfs
 aes.key
