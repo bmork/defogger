@@ -14,5 +14,6 @@ public class ScannerActivity extends Activity {
       CharSequence text = "Hello toast!";
 
       Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
+      finish();
    }
 }
