@@ -7,13 +7,14 @@
   <!-- minimum required for EC signing key support -->
   <uses-sdk a:minSdkVersion="18" />
 
+  <!-- not yet...
   <uses-permission a:name="android.permission.BLUETOOTH"/>
   <uses-permission a:name="android.permission.BLUETOOTH_ADMIN"/>
   <uses-permission a:name="android.permission.ACCESS_FINE_LOCATION"/>
-
+  -->
   
   <application a:label="Defogger">
-        <activity a:name="no.mork.android.defogger.MainActivity">
+        <activity a:name=".MainActivity">
           <intent-filter>
             <category a:name="android.intent.category.LAUNCHER"/>
             <action a:name="android.intent.action.MAIN"/>
@@ -21,8 +22,8 @@
         </activity>
 
        <activity
-            a:name="no.mork.android.defogger.ClientActivity"
-            a:label="bluetooth_client"
+            a:name=".ScannerActivity"
+            a:label="Scanning"
             a:windowSoftInputMode="stateHidden"/>
 	
   </application>
