@@ -16,7 +16,7 @@ public class ScannerActivity extends Activity {
 
       Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
       Intent intent = new Intent();
-      intent.putExtra("message_return", "This data is returned when scan activity is finished.");
+      intent.putExtra("scan_ret", "This data is returned when scan activity is finished.");
       setResult(RESULT_OK, intent);
       finish();
    }
