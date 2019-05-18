@@ -14,7 +14,7 @@
   -->
   
   <application a:label="Defogger">
-        <activity a:name=".MainActivity">
+        <activity a:name="no.mork.android.defogger.MainActivity">
           <intent-filter>
             <category a:name="android.intent.category.LAUNCHER"/>
             <action a:name="android.intent.action.MAIN"/>
@@ -22,9 +22,8 @@
         </activity>
 
        <activity
-            a:name=".ScannerActivity"
-            a:label="Scanning"
-            a:windowSoftInputMode="stateHidden"/>
+           a:name="no.mork.android.defogger.ScannerActivity"
+	   a:parentActivityName="no.mork.android.defogger.MainActivity" />
 	
   </application>
 

@@ -9,12 +9,10 @@ public class ScannerActivity extends Activity {
    @Override
    protected void onCreate(Bundle savedInstanceState) {
       super.onCreate(savedInstanceState);
+      //setContentView(R.layout.activity_main);
 
-      Context context = getApplicationContext();
       CharSequence text = "Hello toast!";
-      int duration = Toast.LENGTH_LONG;
 
-      Toast toast = Toast.makeText(context, text, duration);
-      toast.show();
+      Toast.makeText(getApplicationContext(), text, Toast.LENGTH_LONG).show();
    }
 }
