@@ -9,4 +9,11 @@
       android:layout_centerVertical="true"
       android:text="@string/hello_msg"
       tools:context=".MainActivity" />
+   
+   <Button
+       android:id="@+id/launch_client_button"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:text="@string/client"/>
+
 </RelativeLayout>

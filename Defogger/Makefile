@@ -16,7 +16,9 @@ SDKCLASSPATH=/usr/lib/android-sdk/platforms/android-$(APIVER)/android.jar
 RESOURCES=layout/activity_main.xml values/strings.xml
 RES=$(addprefix res/,$(RESOURCES))
 
-CLASSES=$(addprefix obj/no/mork/android/defogger/,R.class MainActivity.class)
+## Temp disabled while we have some non-building classess....
+#CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,$(wildcard src/no/mork/android/defogger/util/*.java) $(wildcard src/no/mork/android/defogger/*.java))
+CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,$(wildcard src/no/mork/android/defogger/Main*.java))
 
 
 all: defogger.apk
