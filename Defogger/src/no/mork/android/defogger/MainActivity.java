@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import no.mork.android.defogger.ScannerActivity;
 
@@ -22,9 +23,25 @@ public class MainActivity extends Activity {
 		@Override
 		public void onClick(View view) {
 		    Intent intent = new Intent(view.getContext(), ScannerActivity.class);
-		    view.getContext().startActivity(intent);
+		    startActivityForResult(intent, 1);
   		}
             });
 	
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
+        super.onActivityResult(requestCode, resultCode, dataIntent);
+
+        switch (requestCode)
+        {
+            case 1:
+		TextView hello_text = (TextView) findViewById(R.id.hello_text);
+                if(resultCode == RESULT_OK)
+                {
+                    String messageReturn = dataIntent.getStringExtra("scan_ret");
+		    hello_text.setText(messageReturn);
+		}
+        }
     }
 }
