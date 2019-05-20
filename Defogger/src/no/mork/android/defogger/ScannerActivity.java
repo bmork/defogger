@@ -21,11 +21,11 @@ public class ScannerActivity extends Activity {
     private static String msg = "Defogger Scanning: ";
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
-    private BluetoothAdapter bluetoothAdapter;
+
     private boolean mScanning;
     private Handler handler;
     private ScanCallback leScanCallback;
-    private BluetoothLeScanner btScanner;
+
     private ScanListAdapter scanlistAdapter;
     
     @Override
@@ -38,12 +38,6 @@ public class ScannerActivity extends Activity {
 	listView.setAdapter(scanlistAdapter);
 	scanlistAdapter.addDevice("foo");
 	
-	bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-	btScanner = bluetoothAdapter.getBluetoothLeScanner();
-
-	if (btScanner == null) {
-	    Log.d(msg, "getBluetoothLeScanner() returned NULL");
-	}
 	leScanCallback = new ScanCallback() {
 		@Override
 		public void onScanResult(int callbackType, ScanResult result) {
@@ -64,26 +58,23 @@ public class ScannerActivity extends Activity {
     @Override
     protected void onResume() {
 	super.onResume();
-	//scanForCamera(true);
+	scanForCamera(true);
 	//finish();
     }
 
-    protected void scanForCamera(final boolean enable) {
-	mScanning = enable;
+    protected void scanForCamera(boolean enable) {
+	final BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+
 	Log.d(msg, "entered scanForCamera()");
 	if (btScanner == null) {
-	    return;
+	    Log.d(msg, "getBluetoothLeScanner() returned NULL");
 	}
- 	if (enable) {
-            // Stops scanning after a pre-defined scan period.
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mScanning = false;
-                    btScanner.stopScan(leScanCallback);
-                }
-		}, SCAN_PERIOD);
+	Log.d(msg, "got BluetoothLeScanner");
 
+	//	mScanning = enable;
+ 	if (enable) {
+	    Log.d(msg, "going to start()");
+            // Stops scanning after a pre-defined scan period.
 	    Log.d(msg, "starting scan()");
             btScanner.startScan(leScanCallback);
 	    Log.d(msg, "scan started()");
