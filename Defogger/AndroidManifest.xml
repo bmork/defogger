@@ -4,18 +4,20 @@
 	  a:versionCode='0'
 	  a:versionName='0'>
 
-  <!-- minimum required for EC signing key support -->
-  <uses-sdk a:minSdkVersion="18" />
+  <!-- API level 18 required for EC signing key support
+       API level 21 required for BluetoothLeScanner -->
+  <uses-sdk a:minSdkVersion="21" />
 
   <uses-permission a:name="android.permission.BLUETOOTH"/>
+  <!-- BT admin required for scanning -->
   <uses-permission a:name="android.permission.BLUETOOTH_ADMIN"/>
-  <!-- not yet...
-  <uses-permission a:name="android.permission.ACCESS_FINE_LOCATION"/>
-  -->
- <uses-feature a:name="android.hardware.bluetooth_le" a:required="true"/>
+  <!-- An app must hold ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION permission in order to get BT scan results. -->
+  <uses-permission a:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+  <uses-feature a:name="android.hardware.bluetooth_le" a:required="true"/>
  
   <application a:label="Defogger">
-        <activity a:name="no.mork.android.defogger.MainActivity">
+        <activity a:name=".MainActivity">
           <intent-filter>
             <category a:name="android.intent.category.LAUNCHER"/>
             <action a:name="android.intent.action.MAIN"/>
@@ -23,8 +25,8 @@
         </activity>
 
        <activity
-           a:name="no.mork.android.defogger.ScannerActivity"
-	   a:parentActivityName="no.mork.android.defogger.MainActivity" />
+           a:name=".ScannerActivity"
+	   a:parentActivityName=".MainActivity" />
 	
   </application>
 

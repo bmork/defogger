@@ -3,16 +3,17 @@ package no.mork.android.defogger;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.le.BluetoothLeScanner;
+import android.bluetooth.le.ScanCallback;
 import android.content.Context;
 import android.content.Intent;
+import android.support.v7.widget.RecyclerView;  
 import android.os.Bundle;
 import android.os.Handler;
-//import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
-//class LeDeviceListAdapter extends ArrayAdapter {
-//    protected void addDevice(final BluetoothDevice device);
-//}
+
+// lots of nice examples: https://www.programcreek.com/java-api-examples/index.php?api=android.bluetooth.le.ScanCallback
 
 public class ScannerActivity extends Activity {
 
@@ -21,28 +22,33 @@ public class ScannerActivity extends Activity {
     private BluetoothAdapter bluetoothAdapter;
     private boolean mScanning;
     private Handler handler;
-    //  private LeDeviceListAdapter leDeviceListAdapter;
-    private BluetoothAdapter.LeScanCallback leScanCallback;
+    private ScanCallback leScanCallback;
+    private BluetoothLeScanner btScanner;
 
+    private RecyclerView recyclerView;
+    private RecyclerView.Adapter mAdapter;
+    private RecyclerView.LayoutManager layoutManager;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 	super.onCreate(savedInstanceState);
-	//setContentView(R.layout.scanning);
+	setContentView(R.layout.activity_scanner);
 
+        recyclerView = (RecyclerView) findViewById(R.id.my_recycler_view);
+        recyclerView.setHasFixedSize(true);
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
+        mAdapter = new ScanListAdapter(myDataset);
+        recyclerView.setAdapter(mAdapter);
+ 
 	bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+	btScanner = bluetoothAdapter.getBluetoothLeScanner();
 
-	leScanCallback = new BluetoothAdapter.LeScanCallback() {
-		
+	leScanCallback = new ScanCallback() {
 		@Override
-		public void onLeScan(final BluetoothDevice device, int rssi, byte[] scanRecord) {
-		    runOnUiThread(new Runnable() {
-			    
-			    @Override
-			    public void run() {
-				//				leDeviceListAdapter.addDevice(device);
-				// leDeviceListAdapter.notifyDataSetChanged();
-			    }
-			});
+		public void onScanResult(int callbackType, ScanResult result) {
+		    super.onScanResult(callbackType, result);
+		    mAdapter.addDevice(result.getDevice().getAddress());
 		}
 	    };
 	
@@ -56,22 +62,20 @@ public class ScannerActivity extends Activity {
     }
 
     protected void scanForCamera(final boolean enable) {
-	if (enable) {
+	mScanning = enable;
+ 	if (enable) {
             // Stops scanning after a pre-defined scan period.
             handler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     mScanning = false;
-                    bluetoothAdapter.stopLeScan(leScanCallback);
+                    btScanner.stopScan(leScanCallback);
                 }
 		}, SCAN_PERIOD);
 
-            mScanning = true;
-            bluetoothAdapter.startLeScan(leScanCallback);
+            btScanner.startScan(leScanCallback);
         } else {
-            mScanning = false;
-            bluetoothAdapter.stopLeScan(leScanCallback);
+            btScanner.stopScan(leScanCallback);
         }
     }
-
 }

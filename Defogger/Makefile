@@ -7,18 +7,19 @@ KEYPASS=123456
 ## dx is renamed in Debian due to naming conflicts:
 DX=dalvik-exchange
 
-APIVER=23
+APIVER ?= 23
 # This must match whatever dalvik-exchange supports
-JAVAVER=8
+JAVAVER ?= 8
 
-SDKCLASSPATH=/usr/lib/android-sdk/platforms/android-$(APIVER)/android.jar
+ANDROID_HOME ?= /usr/lib/android-sdk
+SDKCLASSPATH ?= $(ANDROID_HOME)/platforms/android-$(APIVER)/android.jar
 
 RESOURCES=layout/activity_main.xml values/strings.xml
 RES=$(addprefix res/,$(RESOURCES))
 
 ## Temp disabled while we have some non-building classess....
 #CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,$(wildcard src/no/mork/android/defogger/util/*.java) $(wildcard src/no/mork/android/defogger/*.java))
-CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,src/no/mork/android/defogger/MainActivity.java src/no/mork/android/defogger/ScannerActivity.java)
+CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,src/no/mork/android/defogger/MainActivity.java src/no/mork/android/defogger/ScannerActivity.java src/no/mork/android/defogger/ScanListAdapter.java)
 
 
 all: defogger.apk
