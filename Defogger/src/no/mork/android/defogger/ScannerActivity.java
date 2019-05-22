@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -26,16 +27,14 @@ public class ScannerActivity extends Activity implements Runnable {
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
-    //    private BluetoothLeScanner btScanner;
+    private BluetoothLeScanner btScanner;
     private boolean mScanning;
-    private Handler mHandler;
     private ScanCallback leScanCallback;
-
     private ScanListAdapter scanlistAdapter;
 
     private class BtleScanCallback extends ScanCallback {
 	
-	private ScanListAdapter mScanResults;
+        private ScanListAdapter mScanResults;
 
 	BtleScanCallback(ScanListAdapter scanResults) {
             mScanResults = scanResults;
@@ -62,14 +61,11 @@ public class ScannerActivity extends Activity implements Runnable {
         }
 
         private void addScanResult(ScanResult result) {
-	    List<ParcelUuid> uuids = result.getScanRecord().getServiceUuids();
-	    if (uuids != null && !uuids.isEmpty()) { // uuids.contains(ParcelUuid.fromString("0000d001-0000-1000-8000-00805f9b34fb"))) {
-		for (ParcelUuid temp : uuids) {
-		    Log.d(msg, temp.toString());
-		} 			
-		mScanResults.addDevice(result.getDevice());
-	    }
+            BluetoothDevice device = result.getDevice();
+	    Log.d(msg, "adding " + device.toString());
+	    mScanResults.add(device);
         }
+
     };
 
     @Override
@@ -104,7 +100,7 @@ public class ScannerActivity extends Activity implements Runnable {
     }
     
     private void startScan() {
-	BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+	btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
 
         ScanSettings settings = new ScanSettings.Builder()
 	    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
@@ -123,18 +119,18 @@ public class ScannerActivity extends Activity implements Runnable {
 	
 	btScanner.startScan(filters, settings, leScanCallback);
 
-	mHandler = new Handler();
+	Handler mHandler = new Handler();
 	mHandler.postDelayed(this, SCAN_PERIOD);
 	mScanning = true;
 	Log.d(msg, "started scanning");
     }
 
     private void stopScan() {
-	BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
 	btScanner.stopScan(leScanCallback);
         leScanCallback = null;
-        mHandler = null;
 	mScanning = false;
 	Log.d(msg, "stopped scanning");
     }
+
+
 }
