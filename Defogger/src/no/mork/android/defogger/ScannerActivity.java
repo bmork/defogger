@@ -5,29 +5,73 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
+import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
+import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.ParcelUuid;
 import android.util.Log;
 import android.widget.ListView;
 import android.widget.Toast;
-
+import java.util.ArrayList;
+import java.util.List;
 
 // lots of nice examples: https://www.programcreek.com/java-api-examples/index.php?api=android.bluetooth.le.ScanCallback
 
-public class ScannerActivity extends Activity {
+public class ScannerActivity extends Activity implements Runnable {
     private static String msg = "Defogger Scanning: ";
     // Stops scanning after 10 seconds.
     private static final long SCAN_PERIOD = 10000;
 
+    //    private BluetoothLeScanner btScanner;
     private boolean mScanning;
-    private Handler handler;
+    private Handler mHandler;
     private ScanCallback leScanCallback;
 
     private ScanListAdapter scanlistAdapter;
-    
+
+    private class BtleScanCallback extends ScanCallback {
+	
+	private ScanListAdapter mScanResults;
+
+	BtleScanCallback(ScanListAdapter scanResults) {
+            mScanResults = scanResults;
+        }
+
+	@Override
+	public void onScanResult(int callbackType, ScanResult result) {
+	    Log.d(msg, "onScanResult(): " + callbackType);
+	    super.onScanResult(callbackType, result);
+	    addScanResult(result);
+	}
+
+        @Override
+        public void onBatchScanResults(List<ScanResult> results) {
+	    Log.d(msg, "onBatchScanResults()");
+            for (ScanResult result : results) {
+                addScanResult(result);
+            }
+        }
+
+        @Override
+        public void onScanFailed(int errorCode) {
+            Log.e(msg, "Failed with code " + errorCode);
+        }
+
+        private void addScanResult(ScanResult result) {
+	    List<ParcelUuid> uuids = result.getScanRecord().getServiceUuids();
+	    if (uuids != null && !uuids.isEmpty()) { // uuids.contains(ParcelUuid.fromString("0000d001-0000-1000-8000-00805f9b34fb"))) {
+		for (ParcelUuid temp : uuids) {
+		    Log.d(msg, temp.toString());
+		} 			
+		mScanResults.addDevice(result.getDevice());
+	    }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 	super.onCreate(savedInstanceState);
@@ -36,16 +80,8 @@ public class ScannerActivity extends Activity {
         ListView listView = (ListView) findViewById(R.id.scanlist_view);
 	scanlistAdapter = new ScanListAdapter(this, R.layout.scanitem, R.id.scanitem);
 	listView.setAdapter(scanlistAdapter);
-	scanlistAdapter.addDevice("foo");
 	
-	leScanCallback = new ScanCallback() {
-		@Override
-		public void onScanResult(int callbackType, ScanResult result) {
-		    Log.d(msg, "onScanResult()");
-		    super.onScanResult(callbackType, result);
-		    scanlistAdapter.addDevice(result.getDevice().getAddress());
-		}
-	    };
+	leScanCallback = new BtleScanCallback(scanlistAdapter);
 	
 	CharSequence text = "Hello toast!";
 
@@ -58,28 +94,47 @@ public class ScannerActivity extends Activity {
     @Override
     protected void onResume() {
 	super.onResume();
-	scanForCamera(true);
+	startScan();
 	//finish();
     }
 
-    protected void scanForCamera(boolean enable) {
-	final BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+    @Override
+    public void run() {
+	stopScan();
+    }
+    
+    private void startScan() {
+	BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+
+        ScanSettings settings = new ScanSettings.Builder()
+	    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+	    //.setCallbackType(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
+	    .build();
+
+	// Note: Filtering does not work.  Must filter in the callback an
+        List<ScanFilter> filters = new ArrayList<>();
+	//	filters.add(new ScanFilter.Builder().setServiceUuid(ParcelUuid.fromString("0000d001-0000-1000-8000-00805f9b34fb")).build());
+	filters.add(new ScanFilter.Builder().build());
 
 	Log.d(msg, "entered scanForCamera()");
 	if (btScanner == null) {
 	    Log.d(msg, "getBluetoothLeScanner() returned NULL");
 	}
-	Log.d(msg, "got BluetoothLeScanner");
+	
+	btScanner.startScan(filters, settings, leScanCallback);
 
-	//	mScanning = enable;
- 	if (enable) {
-	    Log.d(msg, "going to start()");
-            // Stops scanning after a pre-defined scan period.
-	    Log.d(msg, "starting scan()");
-            btScanner.startScan(leScanCallback);
-	    Log.d(msg, "scan started()");
-        } else {
-            btScanner.stopScan(leScanCallback);
-        }
+	mHandler = new Handler();
+	mHandler.postDelayed(this, SCAN_PERIOD);
+	mScanning = true;
+	Log.d(msg, "started scanning");
+    }
+
+    private void stopScan() {
+	BluetoothLeScanner btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
+	btScanner.stopScan(leScanCallback);
+        leScanCallback = null;
+        mHandler = null;
+	mScanning = false;
+	Log.d(msg, "stopped scanning");
     }
 }
