@@ -15,8 +15,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import no.mork.android.defogger.ScannerActivity;
@@ -107,6 +110,16 @@ public class MainActivity extends Activity implements GattClientActionListener {
     }
 
 
+    private Map<String,String> splitKV(String kv)
+    {
+	Map<String,String> ret = new HashMap();
+
+	for (String s : kv.split(";")) {
+	    String[] foo = s.split("=");
+	    ret.put(foo[0], foo[1]); 
+	}
+	return ret;
+    }
 
     // Gatt connection
 
@@ -141,7 +154,13 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	}
 
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
+	    EditText pincode = (EditText) findViewById(R.id.pincode);
+	    Map<String,String> kv = splitKV(c.getStringValue(0));
+
 	    Log.d(msg, c.getUuid().toString() + " read " + c.getStringValue(0));
+	    Log.d(msg, "pincode is " + pincode.getText());
+	    Log.d(msg, "challenge is " + kv.get("C"));
+
 	}
 
     }
