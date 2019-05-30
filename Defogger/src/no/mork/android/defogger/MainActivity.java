@@ -2,21 +2,29 @@ package no.mork.android.defogger;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import java.util.List;
 
 import no.mork.android.defogger.ScannerActivity;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements GattClientActionListener {
+    private static String msg = "Defogger MainActivity: ";
 
     private static final int REQUEST_ENABLE_BT = 0x1042;
     private BluetoothAdapter bluetoothAdapter;
+    private BluetoothGatt mGatt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +54,8 @@ public class MainActivity extends Activity {
  
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
+	BluetoothDevice dev;
+
         super.onActivityResult(requestCode, resultCode, dataIntent);
 	switch (requestCode) {
 	case REQUEST_ENABLE_BT:
@@ -56,9 +66,14 @@ public class MainActivity extends Activity {
 		
 	    break;
 	default:
+	    dev = dataIntent.getExtras().getParcelable("btdevice");
+
 	    TextView hello_text = (TextView) findViewById(requestCode);
-	    String messageReturn = resultCode == RESULT_OK ? dataIntent.getStringExtra("scan_ret") : "not OK";
+	    //	    String messageReturn = resultCode == RESULT_OK ? dataIntent.getStringExtra("scan_ret") : "not OK";
+
+	    String messageReturn = "got: " + dev.getAddress() + " - " + dev.getName();
 	    hello_text.setText(messageReturn);
+	    connectDevice(dev);
 	}
     }
 
@@ -87,4 +102,74 @@ public class MainActivity extends Activity {
 	    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 	}
     }
+
+
+
+    // Gatt connection
+
+    private class GattClientCallback extends BluetoothGattCallback {
+	private GattClientActionListener mClientActionListener;
+
+	public GattClientCallback(GattClientActionListener clientActionListener) {
+	    mClientActionListener = clientActionListener;
+	}
+
+	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+	    Log.d(msg, "onConnectionStateChange() " + status + " " + newState);
+ 	    gatt.discoverServices();
+	}
+	
+	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+	    List<BluetoothGattService> serviceList = gatt.getServices();
+
+	    for (BluetoothGattService service : serviceList) {
+		Log.d(msg, service.getUuid().toString());
+ 	    }
+  
+	}
+    }
+    
+    private void connectDevice(BluetoothDevice device) {
+	Log.d(msg, "connectDevice() " + device.getAddress());
+        GattClientCallback gattClientCallback = new GattClientCallback(this);
+        mGatt = device.connectGatt(this, true, gattClientCallback);
+    }
+
+
+    // abstract GattClientActionListener methods
+
+    @Override
+    public void log(String m) {
+	Log.d(msg, m);
+    }
+
+    @Override
+    public void logError(String m) {
+	Log.d(msg, "Error: " + m);
+    }
+
+    @Override
+    public void setConnected(boolean connected) {
+	Log.d(msg, "setConnected()");
+    }
+
+    @Override
+    public void initializeTime() {
+	Log.d(msg, "initializeTime()");
+    }
+
+    @Override
+    public void initializeEcho() {
+	Log.d(msg, "initializeEcho()");
+    }
+
+    @Override
+    public void disconnectGattServer() {
+	Log.d(msg, "disconnectGattServer()");
+        if (mGatt != null) {
+            mGatt.disconnect();
+            mGatt.close();
+        }
+    }
+
 }
