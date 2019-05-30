@@ -125,6 +125,7 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 	    List<BluetoothGattService> serviceList = gatt.getServices();
 	    BluetoothGattService s;
+	    BluetoothGattCharacteristic a001;
 	    
 	    for (BluetoothGattService service : serviceList) {
 		Log.d(msg, service.getUuid().toString());
@@ -134,7 +135,15 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	    for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
 		Log.d(msg, "ipcam char: " + c.getUuid().toString());
  	    }
+
+	    a001 = s.getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	    gatt.readCharacteristic(a001);
 	}
+
+	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
+	    Log.d(msg, c.getUuid().toString() + " read " + c.getStringValue(0));
+	}
+
     }
     
     private void connectDevice(BluetoothDevice device) {
