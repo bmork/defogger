@@ -98,6 +98,14 @@ public class ScannerActivity extends Activity implements Runnable {
     public void run() {
 	stopScan();
     }
+
+    public void returnScanResult(BluetoothDevice device) {
+	Log.d(msg, "returnScanResult()");
+ 	Intent intent = new Intent();
+	intent.putExtra("scan_ret", device.toString());
+	setResult(RESULT_OK, intent);
+	finish();
+    }
     
     private void startScan() {
 	btScanner = BluetoothAdapter.getDefaultAdapter().getBluetoothLeScanner();
