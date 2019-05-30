@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -16,11 +17,13 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import java.util.List;
+import java.util.UUID;
 
 import no.mork.android.defogger.ScannerActivity;
 
 public class MainActivity extends Activity implements GattClientActionListener {
     private static String msg = "Defogger MainActivity: ";
+    private UUID ipcamService = UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb");
 
     private static final int REQUEST_ENABLE_BT = 0x1042;
     private BluetoothAdapter bluetoothAdapter;
@@ -121,11 +124,16 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 	    List<BluetoothGattService> serviceList = gatt.getServices();
-
+	    BluetoothGattService s;
+	    
 	    for (BluetoothGattService service : serviceList) {
 		Log.d(msg, service.getUuid().toString());
  	    }
-  
+
+	    s = gatt.getService(ipcamService);
+	    for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
+		Log.d(msg, "ipcam char: " + c.getUuid().toString());
+ 	    }
 	}
     }
     
