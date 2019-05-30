@@ -12,11 +12,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,7 +113,7 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	}
     }
 
-
+    // utilities
     private Map<String,String> splitKV(String kv)
     {
 	Map<String,String> ret = new HashMap();
@@ -119,6 +123,19 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	    ret.put(foo[0], foo[1]); 
 	}
 	return ret;
+    }
+
+    private String calculateKey(String in) {
+	MessageDigest md5Hash = null;
+	try {
+	    md5Hash = MessageDigest.getInstance("MD5");
+	} catch (NoSuchAlgorithmException e) {
+ 	    Log.d(msg, "Exception while encrypting to md5");
+	}
+	byte[] bytes = in.getBytes(StandardCharsets.UTF_8);
+	md5Hash.update(bytes, 0, bytes.length);
+	String ret = Base64.encodeToString(md5Hash.digest(), Base64.DEFAULT);
+	return ret.substring(0, 16);
     }
 
     // Gatt connection
@@ -159,8 +176,12 @@ public class MainActivity extends Activity implements GattClientActionListener {
 
 	    Log.d(msg, c.getUuid().toString() + " read " + c.getStringValue(0));
 	    Log.d(msg, "pincode is " + pincode.getText());
-	    Log.d(msg, "challenge is " + kv.get("C"));
 
+
+	    String hashit = gatt.getDevice().getName() + pincode.getText() + kv.get("C");
+	    Log.d(msg, "hashit string is " + hashit);
+	    Log.d(msg, "key is " + calculateKey(hashit));
+	    
 	}
 
     }
