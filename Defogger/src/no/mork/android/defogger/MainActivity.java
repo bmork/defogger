@@ -28,7 +28,7 @@ import java.util.UUID;
 
 import no.mork.android.defogger.ScannerActivity;
 
-public class MainActivity extends Activity implements GattClientActionListener {
+public class MainActivity extends Activity {
     private static String msg = "Defogger MainActivity: ";
     private UUID ipcamService = UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb");
 
@@ -47,6 +47,7 @@ public class MainActivity extends Activity implements GattClientActionListener {
 	start_scan.setOnClickListener(new View.OnClickListener() {
 		@Override
 		public void onClick(View view) {
+		    disconnectDevice();
 		    Intent intent = new Intent(view.getContext(), ScannerActivity.class);
 		    startActivityForResult(intent, R.id.hello_text);
   		}
@@ -141,11 +142,6 @@ public class MainActivity extends Activity implements GattClientActionListener {
     // Gatt connection
 
     private class GattClientCallback extends BluetoothGattCallback {
-	private GattClientActionListener mClientActionListener;
-
-	public GattClientCallback(GattClientActionListener clientActionListener) {
-	    mClientActionListener = clientActionListener;
-	}
 
 	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 	    Log.d(msg, "onConnectionStateChange() " + status + " " + newState);
@@ -188,45 +184,15 @@ public class MainActivity extends Activity implements GattClientActionListener {
     
     private void connectDevice(BluetoothDevice device) {
 	Log.d(msg, "connectDevice() " + device.getAddress());
-        GattClientCallback gattClientCallback = new GattClientCallback(this);
+        GattClientCallback gattClientCallback = new GattClientCallback();
         mGatt = device.connectGatt(this, true, gattClientCallback);
     }
 
-
-    // abstract GattClientActionListener methods
-
-    @Override
-    public void log(String m) {
-	Log.d(msg, m);
-    }
-
-    @Override
-    public void logError(String m) {
-	Log.d(msg, "Error: " + m);
-    }
-
-    @Override
-    public void setConnected(boolean connected) {
-	Log.d(msg, "setConnected()");
-    }
-
-    @Override
-    public void initializeTime() {
-	Log.d(msg, "initializeTime()");
-    }
-
-    @Override
-    public void initializeEcho() {
-	Log.d(msg, "initializeEcho()");
-    }
-
-    @Override
-    public void disconnectGattServer() {
-	Log.d(msg, "disconnectGattServer()");
-        if (mGatt != null) {
-            mGatt.disconnect();
-            mGatt.close();
-        }
+    private void disconnectDevice() {
+	if (mGatt == null)
+	    return;
+	Log.d(msg, "disconnectDevice() " + mGatt.getDevice().getAddress());
+	mGatt.close();
     }
 
 }
