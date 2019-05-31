@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -33,12 +34,19 @@ import no.mork.android.defogger.ScannerActivity;
 
 public class MainActivity extends Activity {
     private static String msg = "Defogger MainActivity: ";
-    private UUID ipcamService = UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb");
 
-    private static final int REQUEST_ENABLE_BT = 0x1042;
+    private static final int REQUEST_ENABLE_BT  = 1;
+    private static final int REQUEST_GET_DEVICE = 2;
+    
     private BluetoothAdapter bluetoothAdapter;
     private BluetoothGatt mGatt;
+    private BluetoothGattService ipcamService;
     private String pincode;
+
+    // status
+    private boolean connected = false;
+    private boolean locked = true;
+    private boolean wifilink = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,64 +54,68 @@ public class MainActivity extends Activity {
 	setContentView(R.layout.activity_main);
 	
 	Button start_scan = (Button) findViewById(R.id.start_scan);
-	//      button2 = (Button) findViewById(R.id.button2);
-	
 	start_scan.setOnClickListener(new View.OnClickListener() {
 		@Override
 		public void onClick(View view) {
 		    disconnectDevice();
 		    Intent intent = new Intent(view.getContext(), ScannerActivity.class);
-		    startActivityForResult(intent, R.id.hello_text);
+		    startActivityForResult(intent, REQUEST_GET_DEVICE);
   		}
             });
 
-
 	EditText cmd = (EditText) findViewById(R.id.command);
-	
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
 		@Override
 		public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 		    if (actionId == EditorInfo.IME_ACTION_DONE) {
-			runCommand(v.getText().toString());
+			runCommand(mGatt, v.getText().toString());
 			return true;
 		    }
 		    return false;
 		}
 	    });
-	
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
 	getBluetoothAdapter();
     }
 
- 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
-	BluetoothDevice dev;
-
         super.onActivityResult(requestCode, resultCode, dataIntent);
+
 	switch (requestCode) {
 	case REQUEST_ENABLE_BT:
 	    if (resultCode != RESULT_OK) { // user refused to enable BT?
-		// logError("BT disabled.");
+		setStatus("Bluetooth is disabled");
 		finish();
 	    }	    
 		
 	    break;
-	default:
-	    dev = dataIntent.getExtras().getParcelable("btdevice");
+	case REQUEST_GET_DEVICE:
+	    if (resultCode != RESULT_OK) {
+		setStatus("Failed to find a camera");
+		break;
+	    }
+
+	    BluetoothDevice dev = dataIntent.getExtras().getParcelable("btdevice");
+	    if (dev == null) {
+		setStatus("No camera selected");
+		break;
+	    }
+
 	    pincode = dataIntent.getStringExtra("pincode");
-
-	    TextView hello_text = (TextView) findViewById(requestCode);
-	    //	    String messageReturn = resultCode == RESULT_OK ? dataIntent.getStringExtra("scan_ret") : "not OK";
-
-	    String messageReturn = "got: " + dev.getAddress() + " - " + dev.getName();
-	    hello_text.setText(messageReturn);
+	    if (pincode == null || pincode.length() < 6) {
+		setStatus("Bogus pincode");
+		break;
+	    }
+		
 	    connectDevice(dev);
+	    break;
+	default:
+	    Log.d(msg, "unknown request???");
 	}
     }
 
@@ -112,21 +124,16 @@ public class MainActivity extends Activity {
 	final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
 	bluetoothAdapter = bluetoothManager.getAdapter();
 
- 	
-	// Bluetooth is not supported?
 	if (bluetoothAdapter == null) {
-	    // logError("BT unsupported.");
+	    setStatus("Bluetooth is unsupported");
             finish();
 	}	    
 	    
-       // Check low energy support
         if (!getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
-            // Get a newer device
-            // logError("No LE Support.");
+            setStatus("No Bluetooth Low Energy support");
             finish();
         }
 
-	// Request user permission to enable Bluetooth.
 	if (!bluetoothAdapter.isEnabled()) {
 	    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 	    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
@@ -158,84 +165,104 @@ public class MainActivity extends Activity {
 	return ret.substring(0, 16);
     }
 
-    // Gatt connection
-
+    private UUID UUIDfromInt(long uuid) {
+	return new UUID(uuid << 32 | 0x1000 , 0x800000805f9b34fbL);
+    }
+    
+    // GATT callbacks
     private class GattClientCallback extends BluetoothGattCallback {
 	private String multimsg;
 
 	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
-	    // FIXME: verify connected....
-	    Log.d(msg, "onConnectionStateChange() " + status + " " + newState);
- 	    gatt.discoverServices();
+	    Log.d(msg, "onConnectionStateChange() status = " + status + ", newState = " + newState);
+	    if (status == BluetoothGatt.GATT_SUCCESS && newState == BluetoothProfile.STATE_CONNECTED) {
+		setStatus("Connected to " + gatt.getDevice().getName());
+		connected = true;
+		if (!gatt.discoverServices())
+		    setStatus("Falied to start service discovery");
+	    } else {		
+		disconnectDevice();
+	    }
 	}
 	
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
-	    List<BluetoothGattService> serviceList = gatt.getServices();
-	    BluetoothGattService s;
+	    Log.d(msg, "onServicesDiscovered()");
 	    
-	    for (BluetoothGattService service : serviceList) {
-		Log.d(msg, service.getUuid().toString());
- 	    }
+	    if (status != BluetoothGatt.GATT_SUCCESS) {
+		setStatus("Failed to discover services");
+		disconnectDevice();
+		return;
+	    }
+	    // get the IPCam service
+	    //	    ipcamService = gatt.getService(UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb"));
+	    ipcamService = gatt.getService(UUIDfromInt(0xd001));
+	    if (ipcamService == null) {
+		setStatus(gatt.getDevice().getName() + " does not support the IPCam GATT service");
+		disconnectDevice();
+		return;
+		
+	    }
 
-	    // FIXME: bail out if not found
-	    //	    s = getIPCamService();
-
-	    // build a map of code to Characteristic
-	    //	    Map<BluetoothGattCharacteristic, > cmap = new HashMap();
-	    // for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
-	    //		int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
-	    //	Log.d(msg, "ipcam char: " + c.getUuid().toString() + String.format(" - %#06x", code));
-
-		//		cmap.put(c, code);
-	    //}
-
-	    notifications(true);
-	    getLock();
+	    setStatus("IPcam GATT service found");
+	    notifications(gatt, true);
+	    getLock(gatt);
 	}
 
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
-	    Map<String,String> kv = splitKV(c.getStringValue(0));
+	    String val = c.getStringValue(0);
+	    Map<String,String> kv = splitKV(val);
 
-	    Log.d(msg, c.getUuid().toString() + " read " + c.getStringValue(0));
+	    Log.d(msg, c.getUuid().toString() + " returned " + val);
 	    
 	    switch (code) {
-	    case 0xa001:
-		String hashit = gatt.getDevice().getName() + pincode + kv.get("C");
-		Log.d(msg, "hashit string is " + hashit);
-		String key = calculateKey(hashit);
+	    case 0xa001: // challenge
+		// already unlocked? 
+		if (kv.get("M").equals("0")) {
+		    setLocked(gatt, false);
+		    break;
+		}
 
-		doUnlock(key);
+		setStatus("Unlocking " + gatt.getDevice().getName());
+		String key = calculateKey(gatt.getDevice().getName() + pincode + kv.get("C"));
+		doUnlock(gatt, key);
 		break;
 	    case 0xa100:
-		multimsg += c.getStringValue(0).split(";",3)[2];
+		// starting a new sequence?
+		if (kv.get("P").equals("1"))
+		    multimsg = "";
+		multimsg += val.split(";",3)[2];
 		// repeat until result is complete
 		if (!kv.get("N").equals(kv.get("P")))
-		    doWifiScan();
+		    doWifiScan(gatt);
 		else
-		    for (String net : multimsg.split("&")) {
+		    for (String net : multimsg.split("&"))
 			Log.d(msg, net);
-		    }
 		break;
 	    default:
 		Log.d(msg, "Read unhandled characteristic: " + c.getUuid().toString());
 	    }
 	}
-
+	
 	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
 	    Log.d(msg, c.getUuid().toString() + " changed to " + c.getStringValue(0));
 	}
 
 	public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
-	    Map<String,String> kv = splitKV(c.getStringValue(0));
-
-	    Log.d(msg, "Write to " + c.getUuid().toString() + " status=" + status + ", value is now: " + c.getStringValue(0));
-
+	    String val = c.getStringValue(0);
+	    Map<String,String> kv = splitKV(val);
+	    
+	    Log.d(msg, "Write to " + c.getUuid().toString() + " status=" + status + ", value is now: " + val);
+	    
 	    switch (code) {
 	    case 0xa001:
-		multimsg = "";
-		doWifiScan();
+		if (kv.get("M").equals("0")) {
+		    setLocked(gatt, false);
+		    doWifiScan(gatt);
+		} else {
+		    setStatus("Failed to unlock " + gatt.getDevice().getName());
+		}
 		break;
 	    default:
 		Log.d(msg, "No action defined after " + c.getUuid().toString());
@@ -243,13 +270,36 @@ public class MainActivity extends Activity {
 	}
     }
     
+    private void setStatus(String text) {
+	Log.d(msg, "Status: " + text);
+	runOnUiThread(new Runnable() {
+		@Override
+		public void run() {
+		    TextView status = (TextView) findViewById(R.id.statustext);
+		    status.setText(text);
+		}
+	    });
+    }
+    
     private void connectDevice(BluetoothDevice device) {
 	Log.d(msg, "connectDevice() " + device.getAddress());
-        GattClientCallback gattClientCallback = new GattClientCallback();
+
+	// reset status to default
+	connected = false;
+	locked = true;
+	wifilink = false;
+	
+	setStatus("Connecting to '" + device.getName() + "' (" + device.getAddress() + ")");
+	GattClientCallback gattClientCallback = new GattClientCallback();
         mGatt = device.connectGatt(this, true, gattClientCallback);
     }
-
+	    
     private void disconnectDevice() {
+	// reset status to default
+	connected = false;
+	locked = true;
+	wifilink = false;
+
 	if (mGatt == null)
 	    return;
 	Log.d(msg, "disconnectDevice() " + mGatt.getDevice().getAddress());
@@ -257,50 +307,86 @@ public class MainActivity extends Activity {
     }
 
     // camera specific code
-    private BluetoothGattService getIPCamService() {
-	// FIXME: bail out if not found
-	return mGatt.getService(ipcamService);
+    private void setLocked(BluetoothGatt gatt, boolean lock) {
+	setStatus(gatt.getDevice().getName() + " is " + (lock ? "locked" : "unlocked"));
+	locked = lock;
     }
 
-    private void notifications(boolean enable) {
+    private void notifications(BluetoothGatt gatt, boolean enable) {
+	if (!connected)
+	    return;
 	Log.d(msg, "notifications()");
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a000-0000-1000-8000-00805f9b34fb"));
-	mGatt.setCharacteristicNotification(c, enable);
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa000));
+	gatt.setCharacteristicNotification(c, enable);
     }
     
-    private void getLock() {
-	Log.d(msg, "getLock()");
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
-	mGatt.readCharacteristic(c);
+    private void getLock(BluetoothGatt gatt) {
+	if (!locked) {
+	    Log.d(msg, "getLock() already unlocked");
+	    return;
+	}
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa001));
+	gatt.readCharacteristic(c);
     }
 
-    private void doUnlock(String key) {
+    private void doUnlock(BluetoothGatt gatt, String key) {
+	if (!connected)
+	    return;
 	Log.d(msg, "doUnlock(), key is " + key);
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa001));
 	c.setValue("M=0;K=" + key); 
-	mGatt.writeCharacteristic(c);
+	gatt.writeCharacteristic(c);
     }
 
-    private void doWifiScan() {
-	Log.d(msg, "doWifiScan()");
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a100-0000-1000-8000-00805f9b34fb"));
-	mGatt.readCharacteristic(c);
+    private void readChar(BluetoothGatt gatt, int num) {
+ 	if (locked)
+	    return;
+	Log.d(msg, "reading " + String.format("%#06x", num));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
+	gatt.readCharacteristic(c);
     }
 
-    private void setInitialPassword() {
-	Log.d(msg, "setInitialPassword()");
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a201-0000-1000-8000-00805f9b34fb"));
-	c.setValue("P=;N=" + pincode); 
-	mGatt.writeCharacteristic(c);
+    private void writeChar(BluetoothGatt gatt, int num, String val) {
+ 	if (locked)
+	    return;
+	Log.d(msg, "writing '" + val + "' to " + String.format("%#06x", num));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
+	c.setValue(val);
+	gatt.writeCharacteristic(c);
+    }
+
+    private void doWifiScan(BluetoothGatt gatt) {
+	readChar(gatt, 0xa100);
+    }
+
+    private void getWifiLink(BluetoothGatt gatt) {
+	readChar(gatt, 0xa103);
+    }
+
+    private void getIpConfig(BluetoothGatt gatt) {
+	readChar(gatt, 0xa104);
+    }
+
+    private void getSysInfo(BluetoothGatt gatt) {
+	readChar(gatt, 0xa200);
+    }
+
+    /*
+    private void setWifi(BluetoothGatt gatt, String essid, String passwd) {
+	if (wifiScanResults == null) {
+	    doWifiScan(gatt);
+	    return;
+	}
+	    
+	writeChar(0xa101, "P=;N=" + pincode);
+    }
+    */
+    
+    private void setInitialPassword(BluetoothGatt gatt) {
+	writeChar(gatt, 0xa201, "P=;N=" + pincode);
     }
     
-    private void runCommand(String command) {
-        //if not self.unlock(): return
-        
-	Log.d(msg, "runCommand() will try to run " + command);
-	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a201-0000-1000-8000-00805f9b34fb"));
-	c.setValue("P=" + pincode + ";N=" + pincode + "&&(" + command + ")&"); 
-	mGatt.writeCharacteristic(c);
+    private void runCommand(BluetoothGatt gatt, String command) {
+	writeChar(gatt, 0xa201, "P=" + pincode + ";N=" + pincode + "&&(" + command + ")&");
     }
-
 }

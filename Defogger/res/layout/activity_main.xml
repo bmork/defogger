@@ -4,7 +4,7 @@
    android:orientation="vertical" >
    
    <TextView
-       android:id="@+id/hello_text"
+       android:id="@+id/statustext"
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"
        android:layout_centerHorizontal="true"
