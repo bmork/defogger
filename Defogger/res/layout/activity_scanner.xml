@@ -2,10 +2,17 @@
    android:layout_width="match_parent"
    android:layout_height="match_parent" >
 
-  <ListView
+   <EditText
+      android:id="@+id/pincode"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content"
+      android:inputType="numberPassword" />
+
+   <ListView
       android:id="@+id/scanlist_view"
       android:scrollbars="vertical"
       android:layout_width="match_parent"
-      android:layout_height="match_parent"/>
+      android:layout_height="fill_parent"
+      android:layout_below="@+id/pincode" />
 
-</RelativeLayout>
+ </RelativeLayout>

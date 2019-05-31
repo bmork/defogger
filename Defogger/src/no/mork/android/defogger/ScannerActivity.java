@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -102,8 +103,10 @@ public class ScannerActivity extends Activity implements Runnable {
     public void returnScanResult(BluetoothDevice device) {
 	Log.d(msg, "returnScanResult()");
 	stopScan();
- 	Intent intent = new Intent();
-	intent.putExtra("scan_ret", device.toString());
+
+	EditText pincode = (EditText) findViewById(R.id.pincode);
+	Intent intent = new Intent();
+	intent.putExtra("pincode",  pincode.getText().toString());
 	intent.putExtra("btdevice", device);
 	setResult(RESULT_OK, intent);
 	finish();
