@@ -142,6 +142,7 @@ public class MainActivity extends Activity {
     // Gatt connection
 
     private class GattClientCallback extends BluetoothGattCallback {
+	private String multimsg;
 
 	public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
 	    Log.d(msg, "onConnectionStateChange() " + status + " " + newState);
@@ -151,35 +152,79 @@ public class MainActivity extends Activity {
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 	    List<BluetoothGattService> serviceList = gatt.getServices();
 	    BluetoothGattService s;
-	    BluetoothGattCharacteristic a001;
 	    
 	    for (BluetoothGattService service : serviceList) {
 		Log.d(msg, service.getUuid().toString());
  	    }
 
-	    s = gatt.getService(ipcamService);
-	    for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
-		Log.d(msg, "ipcam char: " + c.getUuid().toString());
- 	    }
+	    // FIXME: bail out if not found
+	    //	    s = getIPCamService();
 
-	    a001 = s.getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
-	    gatt.readCharacteristic(a001);
+	    // build a map of code to Characteristic
+	    //	    Map<BluetoothGattCharacteristic, > cmap = new HashMap();
+	    // for (BluetoothGattCharacteristic c : s.getCharacteristics()) {
+	    //		int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
+	    //	Log.d(msg, "ipcam char: " + c.getUuid().toString() + String.format(" - %#06x", code));
+
+		//		cmap.put(c, code);
+	    //}
+
+	    notifications(true);
+	    getLock();
 	}
 
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
-	    EditText pincode = (EditText) findViewById(R.id.pincode);
+	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
 	    Map<String,String> kv = splitKV(c.getStringValue(0));
 
 	    Log.d(msg, c.getUuid().toString() + " read " + c.getStringValue(0));
-	    Log.d(msg, "pincode is " + pincode.getText());
-
-
-	    String hashit = gatt.getDevice().getName() + pincode.getText() + kv.get("C");
-	    Log.d(msg, "hashit string is " + hashit);
-	    Log.d(msg, "key is " + calculateKey(hashit));
 	    
+	    switch (code) {
+	    case 0xa001:
+		EditText pincode = (EditText) findViewById(R.id.pincode);
+
+		Log.d(msg, "pincode is " + pincode.getText());
+
+		String hashit = gatt.getDevice().getName() + pincode.getText() + kv.get("C");
+		Log.d(msg, "hashit string is " + hashit);
+		String key = calculateKey(hashit);
+
+		doUnlock(key);
+		break;
+	    case 0xa100:
+		multimsg += c.getStringValue(0).split(";",3)[2];
+		// repeat until result is complete
+		if (!kv.get("N").equals(kv.get("P")))
+		    doWifiScan();
+		else
+		    for (String net : multimsg.split("&")) {
+			Log.d(msg, net);
+		    }
+		break;
+	    default:
+		Log.d(msg, "Read unhandled characteristic: " + c.getUuid().toString());
+	    }
 	}
 
+	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
+	    Log.d(msg, c.getUuid().toString() + " changed to " + c.getStringValue(0));
+	}
+
+	public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
+	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
+	    Map<String,String> kv = splitKV(c.getStringValue(0));
+
+	    Log.d(msg, "Write to " + c.getUuid().toString() + " status=" + status + ", value is now: " + c.getStringValue(0));
+
+	    switch (code) {
+	    case 0xa001:
+		multimsg = "";
+		doWifiScan();
+		break;
+	    default:
+		Log.d(msg, "No action defined after " + c.getUuid().toString());
+	    }
+	}
     }
     
     private void connectDevice(BluetoothDevice device) {
@@ -195,4 +240,33 @@ public class MainActivity extends Activity {
 	mGatt.close();
     }
 
+
+    // camera specific code
+    private BluetoothGattService getIPCamService() {
+	// FIXME: bail out if not found
+	return mGatt.getService(ipcamService);
+    }
+
+    private void notifications(boolean enable) {
+    	    BluetoothGattCharacteristic a000 = getIPCamService().getCharacteristic(UUID.fromString("0000a000-0000-1000-8000-00805f9b34fb"));
+	    mGatt.setCharacteristicNotification(a000, enable);
+    }
+    
+    private void getLock() {
+	BluetoothGattCharacteristic a001 = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	mGatt.readCharacteristic(a001);
+    }
+
+    private void doUnlock(String key) {
+	Log.d(msg, "doUnlock(), key is " + key);
+	BluetoothGattCharacteristic a001 = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	a001.setValue("M=0;K=" + key); 
+	mGatt.writeCharacteristic(a001);
+    }
+
+    private void doWifiScan() {
+	Log.d(msg, "doWifiScan()");
+	BluetoothGattCharacteristic a100 = getIPCamService().getCharacteristic(UUID.fromString("0000a100-0000-1000-8000-00805f9b34fb"));
+	mGatt.readCharacteristic(a100);
+    }
 }
