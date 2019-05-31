@@ -14,10 +14,13 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.TextView.OnEditorActionListener;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -52,6 +55,20 @@ public class MainActivity extends Activity {
 		    startActivityForResult(intent, R.id.hello_text);
   		}
             });
+
+
+	EditText cmd = (EditText) findViewById(R.id.command);
+	
+	cmd.setOnEditorActionListener(new OnEditorActionListener() {
+		@Override
+		public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+		    if (actionId == EditorInfo.IME_ACTION_DONE) {
+			runCommand(v.getText().toString());
+			return true;
+		    }
+		    return false;
+		}
+	    });
 	
     }
 
@@ -185,7 +202,7 @@ public class MainActivity extends Activity {
 
 		Log.d(msg, "pincode is " + pincode.getText());
 
-		String hashit = gatt.getDevice().getName() + pincode.getText() + kv.get("C");
+		String hashit = gatt.getDevice().getName() + getPinCode() + kv.get("C");
 		Log.d(msg, "hashit string is " + hashit);
 		String key = calculateKey(hashit);
 
@@ -240,6 +257,10 @@ public class MainActivity extends Activity {
 	mGatt.close();
     }
 
+    private String getPinCode() {
+	EditText pincode = (EditText) findViewById(R.id.pincode);
+	return pincode.getText().toString();
+    }
 
     // camera specific code
     private BluetoothGattService getIPCamService() {
@@ -248,25 +269,42 @@ public class MainActivity extends Activity {
     }
 
     private void notifications(boolean enable) {
-    	    BluetoothGattCharacteristic a000 = getIPCamService().getCharacteristic(UUID.fromString("0000a000-0000-1000-8000-00805f9b34fb"));
-	    mGatt.setCharacteristicNotification(a000, enable);
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a000-0000-1000-8000-00805f9b34fb"));
+	mGatt.setCharacteristicNotification(c, enable);
     }
     
     private void getLock() {
-	BluetoothGattCharacteristic a001 = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
-	mGatt.readCharacteristic(a001);
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	mGatt.readCharacteristic(c);
     }
 
     private void doUnlock(String key) {
 	Log.d(msg, "doUnlock(), key is " + key);
-	BluetoothGattCharacteristic a001 = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
-	a001.setValue("M=0;K=" + key); 
-	mGatt.writeCharacteristic(a001);
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a001-0000-1000-8000-00805f9b34fb"));
+	c.setValue("M=0;K=" + key); 
+	mGatt.writeCharacteristic(c);
     }
 
     private void doWifiScan() {
 	Log.d(msg, "doWifiScan()");
-	BluetoothGattCharacteristic a100 = getIPCamService().getCharacteristic(UUID.fromString("0000a100-0000-1000-8000-00805f9b34fb"));
-	mGatt.readCharacteristic(a100);
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a100-0000-1000-8000-00805f9b34fb"));
+	mGatt.readCharacteristic(c);
     }
+
+    private void setInitialPassword() {
+	Log.d(msg, "setInitialPassword()");
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a201-0000-1000-8000-00805f9b34fb"));
+	c.setValue("P=;N=" + getPinCode()); 
+	mGatt.writeCharacteristic(c);
+    }
+    
+    private void runCommand(String command) {
+        //if not self.unlock(): return
+        
+	Log.d(msg, "runCommand() will try to run " + command);
+	BluetoothGattCharacteristic c = getIPCamService().getCharacteristic(UUID.fromString("0000a201-0000-1000-8000-00805f9b34fb"));
+	c.setValue("P=" + getPinCode() + ";N=" + getPinCode() + "&&(" + command + ")&"); 
+	mGatt.writeCharacteristic(c);
+    }
+
 }
