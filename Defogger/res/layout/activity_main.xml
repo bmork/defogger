@@ -11,13 +11,11 @@
        android:layout_centerVertical="true"
        android:text="@string/hello_msg"
        tools:context=".MainActivity" />
-   
    <Button
        android:id="@+id/start_scan"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
        android:text="@string/start_scan"/>
-
    <EditText
        android:id="@+id/command"
        android:layout_width="fill_parent"
@@ -25,5 +23,63 @@
        android:inputType="text"
        android:imeOptions="actionDone"
        android:imeActionLabel="Run" />
+   <Button
+       android:id="@+id/wificonfig"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:text="@string/wificonfig"/>
+   <Button
+       android:id="@+id/ipconfig"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:text="@string/ipconfig"/>
+   <TextView
+       android:id="@+id/ipaddress"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/netmask"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/gateway"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/dns"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   
+   <Button
+       android:id="@+id/sysinfo"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:text="@string/sysinfo"/>
+   <!--  N=DCS-8000LH;P=1;T=1559330833;Z=UTC;F=2.02.02;H=A1;M=B0C5544CCC73;V=0.02 -->
+   <TextView
+       android:id="@+id/sysname"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/systime"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/version"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/macaddress"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <Button
+       android:id="@+id/setup"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:text="@string/setup"/>
+   <TextView
+       android:id="@+id/result"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
 
 </LinearLayout>

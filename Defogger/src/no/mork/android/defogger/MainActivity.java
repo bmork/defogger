@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -25,6 +26,8 @@ import android.widget.TextView.OnEditorActionListener;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +45,8 @@ public class MainActivity extends Activity {
     private BluetoothGatt mGatt;
     private BluetoothGattService ipcamService;
     private String pincode;
+    private ArrayDeque<BluetoothGattCharacteristic> readQ;
+    private ArrayDeque<BluetoothGattCharacteristic> writeQ;
 
     // status
     private boolean connected = false;
@@ -60,6 +65,37 @@ public class MainActivity extends Activity {
 		    disconnectDevice();
 		    Intent intent = new Intent(view.getContext(), ScannerActivity.class);
 		    startActivityForResult(intent, REQUEST_GET_DEVICE);
+  		}
+            });
+
+	Button tmp = (Button) findViewById(R.id.wificonfig);
+	tmp.setOnClickListener(new View.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+		    getWifiConfig(mGatt);
+  		}
+            });
+
+	tmp = (Button) findViewById(R.id.ipconfig);
+	tmp.setOnClickListener(new View.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+		    getIpConfig(mGatt);
+  		}
+            });
+
+	tmp = (Button) findViewById(R.id.sysinfo);
+	tmp.setOnClickListener(new View.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+		    getSysInfo(mGatt);
+  		}
+            });
+	tmp = (Button) findViewById(R.id.setup);
+	tmp.setOnClickListener(new View.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+		    getWifiLink(mGatt);
   		}
             });
 
@@ -239,9 +275,24 @@ public class MainActivity extends Activity {
 		    for (String net : multimsg.split("&"))
 			Log.d(msg, net);
 		break;
+
+	    case 0xa101: // wificonfig
+		displayWifiConfig(kv);
+		break;
+	    case 0xa103: // wifilink
+		wifilink = kv.get("S").equals("1");
+		break;
+	    case 0xa104: // ipconfig
+		displayIpConfig(kv);
+		break;
+	    case 0xa200: // sysinfo
+		displaySysInfo(kv);
+		break;
 	    default:
 		Log.d(msg, "Read unhandled characteristic: " + c.getUuid().toString());
 	    }
+
+	    runQueues(gatt);
 	}
 	
 	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
@@ -257,16 +308,15 @@ public class MainActivity extends Activity {
 	    
 	    switch (code) {
 	    case 0xa001:
-		if (kv.get("M").equals("0")) {
+		if (kv.get("M").equals("0"))
 		    setLocked(gatt, false);
-		    doWifiScan(gatt);
-		} else {
-		    setStatus("Failed to unlock " + gatt.getDevice().getName());
-		}
+		else
+		    setStatus("Unlocking failed - Wrong PIN Code?");
 		break;
 	    default:
 		Log.d(msg, "No action defined after " + c.getUuid().toString());
 	    }
+	    runQueues(gatt);
 	}
     }
     
@@ -280,10 +330,67 @@ public class MainActivity extends Activity {
 		}
 	    });
     }
+
+/*
+05-31 21:26:58.866 26309 26345 D Defogger MainActivity: : 0000a104-0000-1000-8000-00805f9b34fb returned I=192.168.2.37;N=255.255.255.0;G=192.168.2.1;D=148.122.16.253
+05-31 21:27:13.761 26309 26345 D Defogger MainActivity: : 0000a200-0000-1000-8000-00805f9b34fb returned N=DCS-8000LH;P=1;T=1559330833;Z=UTC;F=2.02.02;H=A1;M=B0C5544CCC73;V=0.02
+05-31 21:27:18.618 26309 26345 D Defogger MainActivity: : 0000a103-0000-1000-8000-00805f9b34fb returned S=1
+*/
     
+    private void displayWifiConfig(Map<String,String> kv) {
+	Log.d(msg, "displayWifiConfig()");
+	runOnUiThread(new Runnable() {
+		@Override
+		public void run() {
+		    // TextView status = (TextView) findViewById(R.id.statustext);
+		    //status.setText(text);
+		}
+	    });
+    }
+
+    private void displayIpConfig(Map<String,String> kv) {
+	Log.d(msg, "displayIpConfig()");
+	runOnUiThread(new Runnable() {
+		@Override
+		public void run() {
+		    TextView t = (TextView) findViewById(R.id.ipaddress);
+		    t.setText(kv.get("I"));
+		    t = (TextView) findViewById(R.id.netmask);
+		    t.setText(kv.get("N"));
+		    t = (TextView)findViewById(R.id.gateway);
+		    t.setText(kv.get("G"));
+		    t = (TextView)findViewById(R.id.dns);
+		    t.setText(kv.get("D"));
+		}
+	    });
+    }
+
+    private void displaySysInfo(Map<String,String> kv) {
+	Log.d(msg, "displaySysInfo()");
+	java.text.DateFormat dateFormat = android.text.format.DateFormat.getTimeFormat(getApplicationContext());
+	
+	runOnUiThread(new Runnable() {
+		@Override
+		public void run() {
+		    TextView t = (TextView) findViewById(R.id.sysname);
+		    t.setText(kv.get("N"));
+		    t = (TextView) findViewById(R.id.systime);
+		    t.setText(dateFormat.format(new Date(1000 * Integer.parseInt(kv.get("T"))))); // milliseconds....
+		    t = (TextView)findViewById(R.id.version);
+		    t.setText("FW Ver: " + kv.get("F") + ", HW Ver: " + kv.get("H") + ", MyDlink Ver: " + kv.get("V"));
+		    t = (TextView)findViewById(R.id.macaddress);
+		    t.setText(kv.get("M"));
+		}
+	    });
+    }
+
     private void connectDevice(BluetoothDevice device) {
 	Log.d(msg, "connectDevice() " + device.getAddress());
 
+	// create queues
+	readQ = new ArrayDeque();
+	writeQ = new ArrayDeque();
+	
 	// reset status to default
 	connected = false;
 	locked = true;
@@ -308,8 +415,19 @@ public class MainActivity extends Activity {
 
     // camera specific code
     private void setLocked(BluetoothGatt gatt, boolean lock) {
-	setStatus(gatt.getDevice().getName() + " is " + (lock ? "locked" : "unlocked"));
+	if (lock == locked)
+	    return;
+	
 	locked = lock;
+ 	setStatus(gatt.getDevice().getName() + " is " + (lock ? "locked" : "unlocked"));
+	if (locked)
+	    return;
+
+	/* collect current config when unlocking */
+	doWifiScan(gatt);
+	getWifiConfig(gatt);
+	getIpConfig(gatt);
+	getSysInfo(gatt);
     }
 
     private void notifications(BluetoothGatt gatt, boolean enable) {
@@ -317,7 +435,8 @@ public class MainActivity extends Activity {
 	    return;
 	Log.d(msg, "notifications()");
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa000));
-	gatt.setCharacteristicNotification(c, enable);
+	if (!gatt.setCharacteristicNotification(c, enable))
+	    Log.d(msg, "failed to enable notifications");
     }
     
     private void getLock(BluetoothGatt gatt) {
@@ -338,25 +457,48 @@ public class MainActivity extends Activity {
 	gatt.writeCharacteristic(c);
     }
 
+    private BluetoothGattCharacteristic runQueues(BluetoothGatt gatt) {
+	BluetoothGattCharacteristic c = readQ.peekFirst();
+	if (c != null && gatt.readCharacteristic(c))
+	    return readQ.removeFirst();
+	c = writeQ.peekFirst();
+	if (c != null && gatt.writeCharacteristic(c))
+	    return writeQ.removeFirst();
+	return null;
+    }
+
     private void readChar(BluetoothGatt gatt, int num) {
- 	if (locked)
-	    return;
-	Log.d(msg, "reading " + String.format("%#06x", num));
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
-	gatt.readCharacteristic(c);
+ 	if (locked) {
+	    Log.d(msg, "camera is locked");
+	    readQ.offer(c);
+	    return;
+	}
+
+	Log.d(msg, "reading " + String.format("%#06x", num));
+	if (!gatt.readCharacteristic(c))
+	    readQ.offer(c);
     }
 
     private void writeChar(BluetoothGatt gatt, int num, String val) {
- 	if (locked)
-	    return;
-	Log.d(msg, "writing '" + val + "' to " + String.format("%#06x", num));
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
 	c.setValue(val);
-	gatt.writeCharacteristic(c);
+ 	if (locked) {
+	    Log.d(msg, "camera is locked");
+	    writeQ.offer(c);
+ 	    return;
+	}
+	Log.d(msg, "writing '" + val + "' to " + String.format("%#06x", num));
+	if (!gatt.writeCharacteristic(c))
+	    writeQ.offer(c);
     }
 
     private void doWifiScan(BluetoothGatt gatt) {
 	readChar(gatt, 0xa100);
+    }
+
+    private void getWifiConfig(BluetoothGatt gatt) {
+	readChar(gatt, 0xa101);
     }
 
     private void getWifiLink(BluetoothGatt gatt) {

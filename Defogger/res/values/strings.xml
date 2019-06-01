@@ -7,6 +7,10 @@
   <!-- Main -->
 
   <string name="start_scan">Scan for camera</string>
+  <string name="wificonfig">Show WiFi configuration</string>
+  <string name="ipconfig">Show IP configuration</string>
+  <string name="sysinfo">Get system information</string>
+  <string name="setup">Setup WiFi network</string>
 
   <!-- Scanner -->
 
