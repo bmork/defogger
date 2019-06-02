@@ -32,6 +32,11 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
+import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -91,6 +96,11 @@ public class MainActivity extends Activity {
         super.onActivityResult(requestCode, resultCode, dataIntent);
 
 	switch (requestCode) {
+	case IntentIntegrator.REQUEST_CODE:
+	    IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, dataIntent);
+	    if (scanResult != null)
+		handleQRScanResult(scanResult);
+	    break;
 	case REQUEST_ENABLE_BT:
 	    if (resultCode != RESULT_OK) { // user refused to enable BT?
 		setStatus("Bluetooth is disabled");
@@ -148,6 +158,40 @@ public class MainActivity extends Activity {
 	disconnectDevice();
 	Intent intent = new Intent(view.getContext(), ScannerActivity.class);
 	startActivityForResult(intent, REQUEST_GET_DEVICE);
+    }
+
+    public void startQRReaderActivity(View view) {
+	IntentIntegrator integrator = new IntentIntegrator(this);
+	integrator.initiateScan();
+    }
+
+    private void handleQRScanResult(IntentResult res) {
+	Log.d(msg, "QR scan resturned: " + res.toString());
+
+	// DCS-8000LH,A3,12345678,B0C554AABBCC,DCS-8000LH-BBCC,123456
+	String[] data = res.getContents().split(",");
+	if (data.length != 6 || data[3].length() != 12 || data[5].length() != 6) {
+	    setStatus("Unexpected QR scan result - wrong format");
+	    return;
+	}
+
+	pincode = data[5];
+
+	StringBuilder mac = new StringBuilder(data[3]);
+	mac.insert(10, ':');
+	mac.insert(8, ':');
+	mac.insert(6, ':');
+	mac.insert(4, ':');
+	mac.insert(2, ':');
+
+	if (!bluetoothAdapter.checkBluetoothAddress(mac.toString())) {
+	    Log.d(msg, "Got invalid MAC address from QR scan:" + mac.toString());
+	    return;
+	}
+
+	Log.d(msg, "Will attempt to connect to Bluetooth device " + mac.toString());
+	BluetoothDevice device = bluetoothAdapter.getRemoteDevice(mac.toString());
+	connectDevice(device);
     }
 
     // utilities

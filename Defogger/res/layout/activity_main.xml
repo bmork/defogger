@@ -17,6 +17,12 @@
        android:layout_height="wrap_content"
        android:onClick="startScannerActivity"
        android:text="@string/start_scan"/>
+   <Button
+       android:id="@+id/read_qrcode"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="startQRReaderActivity"
+       android:text="@string/read_qrcode"/>
    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

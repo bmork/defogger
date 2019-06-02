@@ -7,6 +7,7 @@
   <!-- Main -->
 
   <string name="start_scan">Scan for camera</string>
+  <string name="read_qrcode">Scan QR Code</string>
   <string name="wificonfig">Show WiFi configuration</string>
   <string name="ipconfig">Show IP configuration</string>
   <string name="sysinfo">Get system information</string>
