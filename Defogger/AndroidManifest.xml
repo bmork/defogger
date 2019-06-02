@@ -27,7 +27,11 @@
        <activity
            a:name=".ScannerActivity"
 	   a:parentActivityName=".MainActivity" />
-	
+
+       <activity
+           a:name=".IpCamActivity"
+	   a:parentActivityName=".MainActivity" />
+
   </application>
 
 </manifest>

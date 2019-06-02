@@ -14,7 +14,7 @@ JAVAVER ?= 8
 ANDROID_HOME ?= /usr/lib/android-sdk
 SDKCLASSPATH ?= $(ANDROID_HOME)/platforms/android-$(APIVER)/android.jar
 
-RESOURCES=layout/activity_main.xml layout/activity_scanner.xml layout/item_scan.xml layout/item_net.xml values/strings.xml
+RESOURCES=layout/activity_main.xml layout/activity_scanner.xml layout/activity_ipcam.xml layout/item_scan.xml layout/item_net.xml values/strings.xml
 RES=$(addprefix res/,$(RESOURCES))
 
 ## Temp disabled while we have some non-building classess....
@@ -23,6 +23,7 @@ CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,\
 	src/no/mork/android/defogger/MainActivity.java \
 	src/no/mork/android/defogger/ScannerActivity.java \
 	src/no/mork/android/defogger/ScanListAdapter.java \
+	src/no/mork/android/defogger/IpCamActivity.java \
 	$(wildcard src/com/google/zxing/integration/android/*.java))
 
 all: defogger.apk
