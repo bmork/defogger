@@ -16,6 +16,11 @@
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
        android:text="@string/start_scan"/>
+   <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/command" />
+
    <EditText
        android:id="@+id/command"
        android:layout_width="fill_parent"
@@ -77,8 +82,8 @@
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
        android:text="@string/setup"/>
-   <TextView
-       android:id="@+id/result"
+   <ListView
+       android:id="@+id/networks"
        android:layout_width="wrap_content"
        android:layout_height="wrap_content"/>
 

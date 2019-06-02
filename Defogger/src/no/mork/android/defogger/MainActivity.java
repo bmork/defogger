@@ -17,10 +17,14 @@ import android.text.format.DateFormat;
 import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
 import java.nio.charset.StandardCharsets;
@@ -177,11 +181,11 @@ public class MainActivity extends Activity {
     }
 
     // utilities
-    private Map<String,String> splitKV(String kv)
+    private Map<String,String> splitKV(String kv, String splitter)
     {
 	Map<String,String> ret = new HashMap();
 
-	for (String s : kv.split(";")) {
+	for (String s : kv.split(splitter)) {
 	    String[] foo = s.split("=");
 	    ret.put(foo[0], foo[1]); 
 	}
@@ -247,7 +251,7 @@ public class MainActivity extends Activity {
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
 	    String val = c.getStringValue(0);
-	    Map<String,String> kv = splitKV(val);
+	    Map<String,String> kv = splitKV(val, ";");
 
 	    Log.d(msg, c.getUuid().toString() + " returned " + val);
 	    
@@ -272,10 +276,8 @@ public class MainActivity extends Activity {
 		if (!kv.get("N").equals(kv.get("P")))
 		    doWifiScan(gatt);
 		else
-		    for (String net : multimsg.split("&"))
-			Log.d(msg, net);
+		    selectNetwork(multimsg.split("&"));
 		break;
-
 	    case 0xa101: // wificonfig
 		displayWifiConfig(kv);
 		break;
@@ -302,7 +304,7 @@ public class MainActivity extends Activity {
 	public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
 	    String val = c.getStringValue(0);
-	    Map<String,String> kv = splitKV(val);
+	    Map<String,String> kv = splitKV(val, ";");
 	    
 	    Log.d(msg, "Write to " + c.getUuid().toString() + " status=" + status + ", value is now: " + val);
 	    
@@ -384,6 +386,57 @@ public class MainActivity extends Activity {
 	    });
     }
 
+    private class NetAdapter extends ArrayAdapter<String> {
+	private int res;
+	
+	public NetAdapter(Context context, int resource, String[] networks) {
+	    super(context, resource, networks);
+	    res = resource;
+	}
+	
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+	    //L=I=aaaa7,M=0,C=4,S=4,E=2,P=100
+	    // Get the data item for this position
+	    Map<String,String> net = splitKV(getItem(position).substring(2), ",");
+	    
+	    // Check if an existing view is being reused, otherwise inflate the view
+	    if (convertView == null) {
+		convertView = LayoutInflater.from(getContext()).inflate(res, parent, false);
+	    }
+	    
+	    // Lookup view for data population
+	    TextView ssid = (TextView) convertView.findViewById(R.id.ssid);
+	    TextView channel = (TextView) convertView.findViewById(R.id.channel);
+	    TextView key_mgmt = (TextView) convertView.findViewById(R.id.key_mgmt);
+	    TextView proto = (TextView) convertView.findViewById(R.id.proto);
+	    TextView rssi = (TextView) convertView.findViewById(R.id.rssi);
+
+	    // Populate the data into the template view using the data object
+	    ssid.setText(net.get("I"));
+	    channel.setText(net.get("C"));
+	    key_mgmt.setText(net.get("S"));
+	    proto.setText(net.get("E"));
+	    rssi.setText(net.get("P"));
+
+	    // Return the completed view to render on screen
+	    return convertView;
+	}
+    }
+    
+    private void selectNetwork(String[] networks) {
+	Context ctx = this;
+	Log.d(msg, "displayWifiConfig()");
+	runOnUiThread(new Runnable() {
+		@Override
+		public void run() {
+		    ArrayAdapter<String> itemsAdapter = new NetAdapter(ctx, R.layout.netitem, networks);
+		    ListView listView = (ListView) findViewById(R.id.networks);
+		    listView.setAdapter(itemsAdapter);
+		}
+	    });
+    }
+	
     private void connectDevice(BluetoothDevice device) {
 	Log.d(msg, "connectDevice() " + device.getAddress());
 
@@ -423,11 +476,12 @@ public class MainActivity extends Activity {
 	if (locked)
 	    return;
 
-	/* collect current config when unlocking */
-	doWifiScan(gatt);
+	/* collect current config after unlocking */
 	getWifiConfig(gatt);
+	getWifiLink(gatt);
 	getIpConfig(gatt);
 	getSysInfo(gatt);
+	doWifiScan(gatt);
     }
 
     private void notifications(BluetoothGatt gatt, boolean enable) {

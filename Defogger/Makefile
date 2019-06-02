@@ -14,7 +14,7 @@ JAVAVER ?= 8
 ANDROID_HOME ?= /usr/lib/android-sdk
 SDKCLASSPATH ?= $(ANDROID_HOME)/platforms/android-$(APIVER)/android.jar
 
-RESOURCES=layout/activity_main.xml layout/activity_scanner.xml layout/scanitem.xml values/strings.xml
+RESOURCES=layout/activity_main.xml layout/activity_scanner.xml layout/scanitem.xml layout/netitem.xml values/strings.xml
 RES=$(addprefix res/,$(RESOURCES))
 
 ## Temp disabled while we have some non-building classess....

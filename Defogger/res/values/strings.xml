@@ -11,6 +11,7 @@
   <string name="ipconfig">Show IP configuration</string>
   <string name="sysinfo">Get system information</string>
   <string name="setup">Setup WiFi network</string>
+  <string name="command">Run command:</string>
 
   <!-- Scanner -->
 
