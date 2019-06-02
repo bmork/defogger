@@ -26,7 +26,6 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,13 +40,6 @@ public class ScannerActivity extends Activity implements Runnable {
     private ScanAdapter scanlistAdapter;
 
     private class BtleScanCallback extends ScanCallback {
-	
-        private ScanAdapter mScanResults;
-
-	BtleScanCallback(ScanAdapter scanResults) {
-            mScanResults = scanResults;
-        }
-
 	@Override
 	public void onScanResult(int callbackType, ScanResult result) {
 	    super.onScanResult(callbackType, result);
@@ -65,17 +57,6 @@ public class ScannerActivity extends Activity implements Runnable {
         @Override
         public void onScanFailed(int errorCode) {
             Log.e(msg, "Failed with code " + errorCode);
-        }
-
-        private void addScanResult(ScanResult result) {
-            BluetoothDevice device = result.getDevice();
-
-	    /* filter result manually, since the filter API is dysfunctional */
-	    if (device.getName() == null || mScanResults.getPosition(device) >=0) // avoid duplicates and ignore nameless devices
-		return;
-
-	    /* FIXME: further filtering on camera service */
-	    mScanResults.add(device);
         }
     };
 
@@ -124,7 +105,7 @@ public class ScannerActivity extends Activity implements Runnable {
 	scanlistAdapter = new ScanAdapter(this, R.layout.item_scan);
 	listView.setAdapter(scanlistAdapter);
 	
-	leScanCallback = new BtleScanCallback(scanlistAdapter);
+	leScanCallback = new BtleScanCallback();
     }
 
     @Override
@@ -138,6 +119,17 @@ public class ScannerActivity extends Activity implements Runnable {
 	stopScan();
     }
 
+    private void addScanResult(ScanResult result) {
+	BluetoothDevice device = result.getDevice();
+
+	/* filter result manually, since the filter API is dysfunctional */
+	if (device.getName() == null || scanlistAdapter.getPosition(device) >=0) // avoid duplicates and ignore nameless devices
+	    return;
+
+	/* FIXME: further filtering on camera service */
+	scanlistAdapter.add(device);
+    }
+    
     public void returnScanResult(BluetoothDevice device) {
 	Log.d(msg, "returnScanResult()");
 	stopScan();
