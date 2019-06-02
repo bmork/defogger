@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/command" />
-
+   
    <EditText
        android:id="@+id/command"
        android:layout_width="fill_parent"
@@ -32,11 +32,13 @@
        android:id="@+id/wificonfig"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
+       android:onClick="getWifiConfig"
        android:text="@string/wificonfig"/>
    <Button
        android:id="@+id/ipconfig"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
+       android:onClick="getIpConfig"
        android:text="@string/ipconfig"/>
    <TextView
        android:id="@+id/ipaddress"
@@ -59,8 +61,8 @@
        android:id="@+id/sysinfo"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
+       android:onClick="getSysInfo"
        android:text="@string/sysinfo"/>
-   <!--  N=DCS-8000LH;P=1;T=1559330833;Z=UTC;F=2.02.02;H=A1;M=B0C5544CCC73;V=0.02 -->
    <TextView
        android:id="@+id/sysname"
        android:layout_width="wrap_content"
@@ -81,6 +83,7 @@
        android:id="@+id/setup"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
+       android:onClick="getWifiLink"
        android:text="@string/setup"/>
    <ListView
        android:id="@+id/networks"

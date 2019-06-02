@@ -72,37 +72,6 @@ public class MainActivity extends Activity {
   		}
             });
 
-	Button tmp = (Button) findViewById(R.id.wificonfig);
-	tmp.setOnClickListener(new View.OnClickListener() {
-		@Override
-		public void onClick(View view) {
-		    getWifiConfig();
-  		}
-            });
-
-	tmp = (Button) findViewById(R.id.ipconfig);
-	tmp.setOnClickListener(new View.OnClickListener() {
-		@Override
-		public void onClick(View view) {
-		    getIpConfig();
-  		}
-            });
-
-	tmp = (Button) findViewById(R.id.sysinfo);
-	tmp.setOnClickListener(new View.OnClickListener() {
-		@Override
-		public void onClick(View view) {
-		    getSysInfo();
-  		}
-            });
-	tmp = (Button) findViewById(R.id.setup);
-	tmp.setOnClickListener(new View.OnClickListener() {
-		@Override
-		public void onClick(View view) {
-		    getWifiLink();
-  		}
-            });
-
 	EditText cmd = (EditText) findViewById(R.id.command);
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
 		@Override
@@ -274,7 +243,7 @@ public class MainActivity extends Activity {
 		multimsg += val.split(";",3)[2];
 		// repeat until result is complete
 		if (!kv.get("N").equals(kv.get("P")))
-		    doWifiScan();
+		    readChar(0xa100);
 		else
 		    selectNetwork(multimsg.split("&"));
 		break;
@@ -477,11 +446,12 @@ public class MainActivity extends Activity {
 	    return;
 
 	/* collect current config after unlocking */
-	getWifiConfig();
-	getWifiLink();
-	getIpConfig();
-	getSysInfo();
-	doWifiScan();
+	View v = new View(this);
+	getWifiConfig(v);
+	getWifiLink(v);
+	getIpConfig(v);
+	getSysInfo(v);
+	doWifiScan(v);
     }
 
     private void notifications(boolean enable) {
@@ -522,6 +492,8 @@ public class MainActivity extends Activity {
     }
 
     private void readChar(int num) {
+	if (!connected)
+	    return;
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
  	if (locked) {
 	    Log.d(msg, "camera is locked");
@@ -535,6 +507,8 @@ public class MainActivity extends Activity {
     }
 
     private void writeChar(int num, String val) {
+	if (!connected)
+	    return;
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
 	c.setValue(val);
  	if (locked) {
@@ -547,23 +521,23 @@ public class MainActivity extends Activity {
 	    writeQ.offer(c);
     }
 
-    private void doWifiScan() {
+    public void doWifiScan(View view) {
 	readChar(0xa100);
     }
 
-    private void getWifiConfig() {
+    public void getWifiConfig(View view) {
 	readChar(0xa101);
     }
 
-    private void getWifiLink() {
+    public void getWifiLink(View view) {
 	readChar(0xa103);
     }
 
-    private void getIpConfig() {
+    public void getIpConfig(View view) {
 	readChar(0xa104);
     }
 
-    private void getSysInfo() {
+    public void getSysInfo(View view) {
 	readChar(0xa200);
     }
 
