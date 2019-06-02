@@ -32,6 +32,7 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.TextView.OnEditorActionListener;
+import android.widget.Toast;
 
 import java.lang.StringBuilder;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +50,7 @@ public class IpCamActivity extends Activity {
 
     private BluetoothGatt mGatt;
     private BluetoothGattService ipcamService;
+    private BluetoothDevice device;
     private String pincode;
     private ArrayDeque<BluetoothGattCharacteristic> readQ;
     private ArrayDeque<BluetoothGattCharacteristic> writeQ;
@@ -66,11 +68,9 @@ public class IpCamActivity extends Activity {
 	// Get the Intent that started this activity and extract parameters
 	Intent intent = getIntent();
 	pincode = intent.getStringExtra("pincode");
-	BluetoothDevice dev = intent.getExtras().getParcelable("btdevice");
-	if (pincode == null || dev == null)
+	device = intent.getExtras().getParcelable("btdevice");
+	if (pincode == null || device == null)
 	    finish();
-	
-	connectDevice(dev);
 	
 	EditText cmd = (EditText) findViewById(R.id.command);
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
@@ -88,6 +88,7 @@ public class IpCamActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+	connectDevice(device);
     }
 
     // utilities
@@ -131,7 +132,7 @@ public class IpCamActivity extends Activity {
 		if (!gatt.discoverServices())
 		    setStatus("Falied to start service discovery");
 	    } else {		
-		disconnectDevice();
+		disconnectDevice("Connection to " + gatt.getDevice().getName() + " failed");
 	    }
 	}
 	
@@ -139,16 +140,14 @@ public class IpCamActivity extends Activity {
 	    Log.d(msg, "onServicesDiscovered()");
 	    
 	    if (status != BluetoothGatt.GATT_SUCCESS) {
-		setStatus("Failed to discover services");
-		disconnectDevice();
+		disconnectDevice("Failed to discover services on " + gatt.getDevice().getName());
 		return;
 	    }
 	    // get the IPCam service
 	    //	    ipcamService = gatt.getService(UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb"));
 	    ipcamService = gatt.getService(UUIDfromInt(0xd001));
 	    if (ipcamService == null) {
-		setStatus(gatt.getDevice().getName() + " does not support the IPCam GATT service");
-		disconnectDevice();
+		disconnectDevice(gatt.getDevice().getName() + " does not support the IPCam GATT service");
 		return;
 		
 	    }
@@ -297,11 +296,11 @@ public class IpCamActivity extends Activity {
     }
 
     private class NetAdapter extends ArrayAdapter<String> {
-	private int res;
+       	private int resource;
 	
 	public NetAdapter(Context context, int resource, String[] networks) {
 	    super(context, resource, networks);
-	    res = resource;
+	    this.resource = resource;
 	}
 	
 	@Override
@@ -312,7 +311,7 @@ public class IpCamActivity extends Activity {
 	    
 	    // Check if an existing view is being reused, otherwise inflate the view
 	    if (convertView == null) {
-		convertView = LayoutInflater.from(getContext()).inflate(res, parent, false);
+		convertView = LayoutInflater.from(getContext()).inflate(resource, parent, false);
 	    }
 	    
 	    // Lookup view for data population
@@ -364,16 +363,21 @@ public class IpCamActivity extends Activity {
         mGatt = device.connectGatt(this, true, gattClientCallback);
     }
 
-    private void disconnectDevice() {
+    private void disconnectDevice(String reason) {
+	// we're finishing, so we either havt to return the reason to the parent or flash it like this
+	runOnUiThread(new Runnable() {
+		public void run() {
+		    Toast.makeText(getApplicationContext(), reason, Toast.LENGTH_LONG).show();
+		}});
+
 	// reset status to default
 	connected = false;
 	locked = true;
 	wifilink = false;
 
-	if (mGatt == null)
-	    return;
-	Log.d(msg, "disconnectDevice() " + mGatt.getDevice().getAddress());
-	mGatt.close();
+	if (mGatt != null)
+	    mGatt.close();
+	Log.d(msg, "disconnectDevice() " + device.getAddress() + " with reason: " + reason);
 	finish();
     }
 

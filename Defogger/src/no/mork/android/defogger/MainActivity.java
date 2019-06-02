@@ -3,7 +3,6 @@
  *  Copyright (c) 2019  Bjørn Mork <bjorn@mork.no>
  */
 
-
 package no.mork.android.defogger;
 
 import android.app.Activity;
