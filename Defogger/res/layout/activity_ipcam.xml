@@ -9,35 +9,7 @@
        android:layout_height="wrap_content"
        android:layout_centerHorizontal="true"
        android:layout_centerVertical="true" />
-   <Button
-       android:id="@+id/wificonfig"
-       android:layout_width="match_parent"
-       android:layout_height="wrap_content"
-       android:onClick="getWifiConfig"
-       android:text="@string/wificonfig"/>
-   <Button
-       android:id="@+id/ipconfig"
-       android:layout_width="match_parent"
-       android:layout_height="wrap_content"
-       android:onClick="getIpConfig"
-       android:text="@string/ipconfig"/>
-   <TextView
-       android:id="@+id/ipaddress"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/netmask"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/gateway"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/dns"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   
+
    <Button
        android:id="@+id/sysinfo"
        android:layout_width="match_parent"
@@ -45,26 +17,61 @@
        android:onClick="getSysInfo"
        android:text="@string/sysinfo"/>
    <TextView
-       android:id="@+id/sysname"
+       android:id="@+id/sysstatus"
        android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/systime"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/version"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
-   <TextView
-       android:id="@+id/macaddress"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
+       android:layout_height="wrap_content"
+       android:inputType="textMultiLine"/>
+   
+   <Button
+       android:id="@+id/wificonfig"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="getWifiConfig"
+       android:text="@string/wificonfig"/>
 
    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/command" />
+       android:id="@+id/wifistatus"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:inputType="textMultiLine"/>
+   
+   <TextView
+       android:id="@+id/ipstatus"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:inputType="textMultiLine"/>
+
+   <Button
+       android:id="@+id/rtsp"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="doRtsp"
+       android:text="@string/rtsp"/>
+   <Button
+       android:id="@+id/telnetd"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="doTelnet"
+       android:text="@string/telnetd"/>
+   <Button
+       android:id="@+id/lighttpd"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="doHttp"
+       android:text="@string/lighttpd"/>
+   <Button
+       android:id="@+id/unsignedfw"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="doUnsignedFW"
+       android:text="@string/unsignedfw"/>
+   
+   <Button
+       android:id="@+id/runbutton"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="doCommand"
+       android:text="@string/command"/>
 
    <EditText
        android:id="@+id/command"
@@ -80,6 +87,7 @@
        android:layout_height="wrap_content"
        android:onClick="getWifiLink"
        android:text="@string/setup"/>
+
    <ListView
        android:id="@+id/networks"
        android:layout_width="wrap_content"

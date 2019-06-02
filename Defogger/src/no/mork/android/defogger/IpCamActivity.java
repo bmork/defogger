@@ -78,6 +78,7 @@ public class IpCamActivity extends Activity {
 		public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
 		    if (actionId == EditorInfo.IME_ACTION_DONE) {
 			runCommand(v.getText().toString());
+			v.setText("");
 			return true;
 		    }
 		    return false;
@@ -225,7 +226,7 @@ public class IpCamActivity extends Activity {
 		    setStatus("Unlocking failed - Wrong PIN Code?");
 		break;
 	    default:
-		Log.d(msg, "No action defined after " + c.getUuid().toString());
+		Log.d(msg, "No action defined after writing " + c.getUuid().toString());
 	    }
 	    runQueues();
 	}
@@ -253,8 +254,11 @@ public class IpCamActivity extends Activity {
 	runOnUiThread(new Runnable() {
 		@Override
 		public void run() {
-		    // TextView status = (TextView) findViewById(R.id.statustext);
-		    //status.setText(text);
+		    TextView t = (TextView) findViewById(R.id.wifistatus);
+		    if (kv.get("I").length() > 0)
+			t.setText((wifilink ? "Connected" : "Not connected") + " to '" + kv.get("I") + "' with M=" + kv.get("M") + ", S=" + kv.get("S") + ", E=" + kv.get("E"));
+		    else
+			t.setText("WiFi connection is unconfigured");
 		}
 	    });
     }
@@ -264,14 +268,11 @@ public class IpCamActivity extends Activity {
 	runOnUiThread(new Runnable() {
 		@Override
 		public void run() {
-		    TextView t = (TextView) findViewById(R.id.ipaddress);
-		    t.setText(kv.get("I"));
-		    t = (TextView) findViewById(R.id.netmask);
-		    t.setText(kv.get("N"));
-		    t = (TextView)findViewById(R.id.gateway);
-		    t.setText(kv.get("G"));
-		    t = (TextView)findViewById(R.id.dns);
-		    t.setText(kv.get("D"));
+		    TextView t = (TextView) findViewById(R.id.ipstatus);
+		    if (wifilink && kv.get("I").length() > 0)
+			t.setText("IP Address: " + kv.get("I") + "\nNetmask: " + kv.get("N") + "\nGateway: " + kv.get("G") + "\nDNS: " + kv.get("D"));
+		    else
+			t.setText("No IP Configured");
 		}
 	    });
     }
@@ -283,14 +284,9 @@ public class IpCamActivity extends Activity {
 	runOnUiThread(new Runnable() {
 		@Override
 		public void run() {
-		    TextView t = (TextView) findViewById(R.id.sysname);
-		    t.setText(kv.get("N"));
-		    t = (TextView) findViewById(R.id.systime);
-		    t.setText(dateFormat.format(new Date(1000 * Integer.parseInt(kv.get("T"))))); // milliseconds....
-		    t = (TextView)findViewById(R.id.version);
-		    t.setText("FW Ver: " + kv.get("F") + ", HW Ver: " + kv.get("H") + ", MyDlink Ver: " + kv.get("V"));
-		    t = (TextView)findViewById(R.id.macaddress);
-		    t.setText(kv.get("M"));
+		    TextView t = (TextView) findViewById(R.id.sysstatus);
+		    t.setText("Name: " + kv.get("N") + "\nTime: " + kv.get("T") + "\nFW Ver: " + kv.get("F") + "\nHW Ver: " + kv.get("H") + "\nMyDlink Ver: " + kv.get("V") + "\nMac: " + kv.get("M"));
+			      //		    t.setText(dateFormat.format(new Date(1000 * Integer.parseInt(kv.get("T"))))); // milliseconds....
 		}
 	    });
     }
@@ -393,8 +389,8 @@ public class IpCamActivity extends Activity {
 
 	/* collect current config after unlocking */
 	View v = new View(this);
-	getWifiConfig(v);
 	getWifiLink(v);
+	getWifiConfig(v);
 	getIpConfig(v);
 	getSysInfo(v);
 	doWifiScan(v);
@@ -487,6 +483,34 @@ public class IpCamActivity extends Activity {
 	readChar(0xa200);
     }
 
+    public void doCommand(View view) {
+    	EditText cmd = (EditText) findViewById(R.id.command);
+	runCommand(cmd.getText().toString());
+	cmd.setText("");
+    }
+
+    public void doRtsp(View view) {
+	runCommand("[ \"$(tdb get RTPServer RejectExtIP_byte)\" -eq \"0\" ]||tdb set RTPServer RejectExtIP_byte=0");
+        runCommand("[ \"$(tdb get RTPServer Authenticate_byte)\" -eq \"1\" ]||tdb set RTPServer Authenticate_byte=1");
+        runCommand("/etc/rc.d/init.d/firewall.sh reload&&/etc/rc.d/init.d/rtspd.sh restart");
+    }
+
+    public void doTelnet(View view) {
+        runCommand("grep -Eq ^admin: /etc/passwd||echo admin:x:0:0::/:/bin/sh >>/etc/passwd");
+	runCommand("grep -Eq ^admin:x: /etc/passwd&&echo admin:" + pincode + "|chpasswd");
+        runCommand("pidof telnetd||telnetd");
+    }
+
+    public void doHttp(View view) {
+        runCommand("[ \"$(tdb get HTTPServer Enable_byte)\" -eq \"1\" ]||tdb set HTTPServer Enable_byte=1");
+        runCommand("/etc/rc.d/init.d/extra_lighttpd.sh start");
+    }
+
+    public void doUnsignedFW(View view) {
+	runCommand("tdb set SecureFW _TrustLevel_byte=0");
+    }
+
+
     /*
     private void setWifi(String essid, String passwd) {
 	if (wifiScanResults == null) {
@@ -503,6 +527,7 @@ public class IpCamActivity extends Activity {
     }
     
     private void runCommand(String command) {
+	setStatus("Running '" + command + "' on camera...");
 	writeChar(0xa201, "P=" + pincode + ";N=" + pincode + "&&(" + command + ")&");
     }
 }

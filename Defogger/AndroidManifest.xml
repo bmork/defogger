@@ -30,7 +30,8 @@
 
        <activity
            a:name=".IpCamActivity"
-	   a:parentActivityName=".MainActivity" />
+	   a:parentActivityName=".MainActivity"
+	   a:windowSoftInputMode="stateHidden|adjustResize" />
 
   </application>
 

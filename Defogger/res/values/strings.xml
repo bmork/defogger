@@ -6,13 +6,16 @@
 
   <!-- Main -->
 
-  <string name="start_scan">Scan for camera</string>
-  <string name="read_qrcode">Scan QR Code</string>
-  <string name="wificonfig">Show WiFi configuration</string>
-  <string name="ipconfig">Show IP configuration</string>
-  <string name="sysinfo">Get system information</string>
-  <string name="setup">Setup WiFi network</string>
-  <string name="command">Run command:</string>
+  <string name="start_scan">Run Bluetooth Scan</string>
+  <string name="read_qrcode">Read QR Code</string>
+  <string name="wificonfig">Network configuration</string>
+  <string name="sysinfo">System information</string>
+  <string name="setup">Configure network</string>
+  <string name="telnetd">Enable telnet (volatile)</string>
+  <string name="lighttpd">Enable http API (volatile)</string>
+  <string name="rtsp">Enable rtsp (permanent)</string>
+  <string name="unsignedfw">Enable unsigned firmware (permanent)</string>
+  <string name="command">Run command</string>
 
   <!-- Scanner -->
 
