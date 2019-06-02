@@ -1,6 +1,7 @@
 
-## FIXME
-KEYPASS=123456
+## No, this doesn't work :-)
+KEYPASS ?= secret
+KEYSTORE ?= $(HOME)/android/defogger.keystore
 
 ## aapt - Android Asset Packaging Tool
 
@@ -40,12 +41,13 @@ defogger.apk.unsigned: classes.dex AndroidManifest.xml
 	aapt package -f -m -F $@ -M AndroidManifest.xml -S res -I $(SDKCLASSPATH)
 	aapt add $@ classes.dex
 
-defogger.keystore:
+$(KEYSTORE):
 	keytool -storepass $(KEYPASS) -keypass $(KEYPASS) -genkeypair -alias defogger -dname "dc=no, dc=mork, dc=android, cn=defogger" -validity 365 -keystore $@ -keyalg EC -keysize 256 -sigalg SHA256withECDSA
 
-defogger.apk: defogger.keystore defogger.apk.unsigned
-	apksigner sign --v2-signing-enabled false --ks defogger.keystore --ks-pass "pass:$(KEYPASS)" --key-pass "pass:$(KEYPASS)"  --out $@.unaligned defogger.apk.unsigned
+defogger.apk: $(KEYSTORE) defogger.apk.unsigned
+	apksigner sign --v2-signing-enabled false --ks $(KEYSTORE) --ks-pass "pass:$(KEYPASS)" --key-pass "pass:$(KEYPASS)"  --out $@.unaligned defogger.apk.unsigned
 	zipalign -f 4 $@.unaligned $@
 
 clean:
+	rm -rf obj
 	rm -f src/no/mork/android/defogger/R.java $(CLASSES) classes.dex *.unsigned *.unaligned *.apk
