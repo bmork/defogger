@@ -1,0 +1,88 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+   android:layout_width="match_parent"
+   android:layout_height="match_parent"
+   android:orientation="vertical" >
+   
+   <TextView
+       android:id="@+id/statustext"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"
+       android:layout_centerHorizontal="true"
+       android:layout_centerVertical="true" />
+   <Button
+       android:id="@+id/wificonfig"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="getWifiConfig"
+       android:text="@string/wificonfig"/>
+   <Button
+       android:id="@+id/ipconfig"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="getIpConfig"
+       android:text="@string/ipconfig"/>
+   <TextView
+       android:id="@+id/ipaddress"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/netmask"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/gateway"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/dns"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   
+   <Button
+       android:id="@+id/sysinfo"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="getSysInfo"
+       android:text="@string/sysinfo"/>
+   <TextView
+       android:id="@+id/sysname"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/systime"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/version"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+   <TextView
+       android:id="@+id/macaddress"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+
+   <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/command" />
+
+   <EditText
+       android:id="@+id/command"
+       android:layout_width="fill_parent"
+       android:layout_height="wrap_content"
+       android:inputType="text"
+       android:imeOptions="actionDone"
+       android:imeActionLabel="Run" />
+
+   <Button
+       android:id="@+id/setup"
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:onClick="getWifiLink"
+       android:text="@string/setup"/>
+   <ListView
+       android:id="@+id/networks"
+       android:layout_width="wrap_content"
+       android:layout_height="wrap_content"/>
+
+</LinearLayout>
