@@ -19,8 +19,11 @@ RES=$(addprefix res/,$(RESOURCES))
 
 ## Temp disabled while we have some non-building classess....
 #CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,$(wildcard src/no/mork/android/defogger/util/*.java) $(wildcard src/no/mork/android/defogger/*.java))
-CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,src/no/mork/android/defogger/MainActivity.java src/no/mork/android/defogger/ScannerActivity.java src/no/mork/android/defogger/ScanListAdapter.java)
-
+CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,\
+	src/no/mork/android/defogger/MainActivity.java \
+	src/no/mork/android/defogger/ScannerActivity.java \
+	src/no/mork/android/defogger/ScanListAdapter.java \
+	$(wildcard src/com/google/zxing/integration/android/*.java))
 
 all: defogger.apk
 
