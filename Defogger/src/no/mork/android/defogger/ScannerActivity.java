@@ -75,7 +75,7 @@ public class ScannerActivity extends Activity implements Runnable {
 	setContentView(R.layout.activity_scanner);
 
         ListView listView = (ListView) findViewById(R.id.scanlist_view);
-	scanlistAdapter = new ScanListAdapter(this, R.layout.scanitem, R.id.scanitem);
+	scanlistAdapter = new ScanListAdapter(this, R.layout.item_scan, R.id.scanitem);
 	listView.setAdapter(scanlistAdapter);
 	
 	leScanCallback = new BtleScanCallback(scanlistAdapter);

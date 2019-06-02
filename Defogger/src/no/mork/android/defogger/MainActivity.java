@@ -1,3 +1,8 @@
+/*
+ *  SPDX-License-Identifier: GPL-3.0-only
+ *  Copyright (c) 2019  Bjørn Mork <bjorn@mork.no>
+ */
+
 package no.mork.android.defogger;
 
 import android.app.Activity;
@@ -395,7 +400,7 @@ public class MainActivity extends Activity {
 	runOnUiThread(new Runnable() {
 		@Override
 		public void run() {
-		    ArrayAdapter<String> itemsAdapter = new NetAdapter(ctx, R.layout.netitem, networks);
+		    ArrayAdapter<String> itemsAdapter = new NetAdapter(ctx, R.layout.item_net, networks);
 		    ListView listView = (ListView) findViewById(R.id.networks);
 		    listView.setAdapter(itemsAdapter);
 		}

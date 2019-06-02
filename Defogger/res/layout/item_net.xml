@@ -1,0 +1,29 @@
+<TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	      android:layout_width="match_parent"
+	      android:layout_height="match_parent"
+	      android:orientation="horizontal">
+  <TableRow
+      android:layout_width="match_parent"
+      android:layout_height="match_parent">
+  <TextView
+      android:id="@+id/ssid"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content" />
+  <TextView
+      android:id="@+id/channel"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content" />
+  <TextView
+      android:id="@+id/key_mgmt"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content" />
+  <TextView
+      android:id="@+id/proto"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content" />
+  <TextView
+      android:id="@+id/rssi"
+      android:layout_width="fill_parent"
+      android:layout_height="wrap_content" />
+  </TableRow>
+</TableLayout>
