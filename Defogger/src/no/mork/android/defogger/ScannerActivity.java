@@ -1,3 +1,7 @@
+/*
+ *  SPDX-License-Identifier: GPL-3.0-only
+ *  Copyright (c) 2019  Bjørn Mork <bjorn@mork.no>
+ */
 package no.mork.android.defogger;
 
 import android.app.Activity;
@@ -21,8 +25,6 @@ import android.widget.Toast;
 import java.util.ArrayList;
 import java.util.List;
 
-// lots of nice examples: https://www.programcreek.com/java-api-examples/index.php?api=android.bluetooth.le.ScanCallback
-
 public class ScannerActivity extends Activity implements Runnable {
     private static String msg = "Defogger Scanning: ";
     // Stops scanning after 10 seconds.
@@ -43,7 +45,6 @@ public class ScannerActivity extends Activity implements Runnable {
 
 	@Override
 	public void onScanResult(int callbackType, ScanResult result) {
-	    Log.d(msg, "onScanResult(): " + callbackType);
 	    super.onScanResult(callbackType, result);
 	    addScanResult(result);
 	}
@@ -63,10 +64,8 @@ public class ScannerActivity extends Activity implements Runnable {
 
         private void addScanResult(ScanResult result) {
             BluetoothDevice device = result.getDevice();
-	    Log.d(msg, "adding " + device.toString());
 	    mScanResults.add(device);
         }
-
     };
 
     @Override

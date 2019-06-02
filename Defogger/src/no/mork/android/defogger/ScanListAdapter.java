@@ -1,3 +1,7 @@
+/*
+ *  SPDX-License-Identifier: GPL-3.0-only
+ *  Copyright (c) 2019  Bjørn Mork <bjorn@mork.no>
+ */
 package no.mork.android.defogger;
 
 import android.bluetooth.BluetoothDevice;
@@ -11,10 +15,6 @@ import android.widget.BaseAdapter;
 import android.widget.TextView;
 import java.util.ArrayList;
 import no.mork.android.defogger.ScannerActivity;
-
-// originally from https://developer.android.com/guide/topics/ui/layout/recyclerview
-// but converted to simpler ArrayAdapter using https://developer.android.com/guide/topics/ui/declaring-layout.html#FillingTheLayout
-
 
 public class ScanListAdapter extends BaseAdapter {
     private static String msg = "Defogger Adapter: ";

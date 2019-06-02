@@ -188,10 +188,7 @@ public class MainActivity extends Activity {
 	    Log.d(msg, "Got invalid MAC address from QR scan:" + mac.toString());
 	    return;
 	}
-
-	Log.d(msg, "Will attempt to connect to Bluetooth device " + mac.toString());
-	BluetoothDevice device = bluetoothAdapter.getRemoteDevice(mac.toString());
-	connectDevice(device);
+	connectDevice(mac.toString());
     }
 
     // utilities
@@ -467,7 +464,12 @@ public class MainActivity extends Activity {
 	GattClientCallback gattClientCallback = new GattClientCallback();
         mGatt = device.connectGatt(this, true, gattClientCallback);
     }
-	    
+
+    private void connectDevice(String macaddress) {
+	BluetoothDevice device = bluetoothAdapter.getRemoteDevice(macaddress);
+	connectDevice(device);
+    }
+
     private void disconnectDevice() {
 	// reset status to default
 	connected = false;
