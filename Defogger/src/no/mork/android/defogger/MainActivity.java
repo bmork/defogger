@@ -61,16 +61,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
 	super.onCreate(savedInstanceState);
 	setContentView(R.layout.activity_main);
-	
-	Button start_scan = (Button) findViewById(R.id.start_scan);
-	start_scan.setOnClickListener(new View.OnClickListener() {
-		@Override
-		public void onClick(View view) {
-		    disconnectDevice();
-		    Intent intent = new Intent(view.getContext(), ScannerActivity.class);
-		    startActivityForResult(intent, REQUEST_GET_DEVICE);
-  		}
-            });
 
 	EditText cmd = (EditText) findViewById(R.id.command);
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
@@ -147,6 +137,12 @@ public class MainActivity extends Activity {
 	    Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
 	    startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
 	}
+    }
+
+    public void startScannerActivity(View view) {
+	disconnectDevice();
+	Intent intent = new Intent(view.getContext(), ScannerActivity.class);
+	startActivityForResult(intent, REQUEST_GET_DEVICE);
     }
 
     // utilities
