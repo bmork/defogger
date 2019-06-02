@@ -22,7 +22,6 @@ RES=$(addprefix res/,$(RESOURCES))
 CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,\
 	src/no/mork/android/defogger/MainActivity.java \
 	src/no/mork/android/defogger/ScannerActivity.java \
-	src/no/mork/android/defogger/ScanListAdapter.java \
 	src/no/mork/android/defogger/IpCamActivity.java \
 	$(wildcard src/com/google/zxing/integration/android/*.java))
 
