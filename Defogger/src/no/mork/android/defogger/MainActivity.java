@@ -150,6 +150,11 @@ public class MainActivity extends Activity {
     }
 
     private void handleQRScanResult(IntentResult res) {
+	if (res.getContents() == null) {
+	    setStatus("No QR code scanned");
+	    return;
+	}
+	
 	Log.d(msg, "QR scan resturned: " + res.toString());
 
 	// DCS-8000LH,A3,12345678,B0C554AABBCC,DCS-8000LH-BBCC,123456
