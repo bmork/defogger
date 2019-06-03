@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
@@ -40,6 +41,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,7 +158,6 @@ public class IpCamActivity extends Activity {
 
 	    setStatus("IPcam GATT service found");
 	    notifications(true);
-	    getLock();
 	}
 
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
@@ -209,7 +210,8 @@ public class IpCamActivity extends Activity {
 	}
 	
 	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
-	    Log.d(msg, c.getUuid().toString() + " changed to " + c.getStringValue(0));
+	    Map<String,String> kv = splitKV(c.getStringValue(0), ";");
+	    Log.d(msg, String.format("UUID %#06x mode=", Integer.parseInt(kv.get("C"))) + kv.get("A") + " state=" + kv.get("R"));
 	}
 
 	public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
@@ -233,6 +235,22 @@ public class IpCamActivity extends Activity {
 		Log.d(msg, "No action defined after writing " + c.getUuid().toString());
 	    }
 	    runQueues();
+	}
+
+
+	public void onDescriptorWrite (BluetoothGatt gatt,  BluetoothGattDescriptor d, int status) {
+	    Log.d(msg, d.getUuid().toString() + " status: " + status);
+	    int code = (int)(d.getUuid().getMostSignificantBits() >> 32);
+
+	    switch (code) {
+	    case 0x2902:
+		/* now, unlock */
+		if (java.util.Arrays.equals(d.getValue(), BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE))
+		    getLock();
+		break;
+	    default:
+		Log.d(msg, "unknown descriptor written");
+	    }
 	}
     }
     
@@ -402,12 +420,21 @@ public class IpCamActivity extends Activity {
     }
 
     private void notifications(boolean enable) {
-	if (!connected)
+	if (!connected || !enable)
 	    return;
 	Log.d(msg, "notifications()");
 	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa000));
 	if (!mGatt.setCharacteristicNotification(c, enable))
 	    Log.d(msg, "failed to enable notifications");
+
+	/*
+	 * actually enabling notifications is more complicated than necessary... 
+	 * ref: https://stackoverflow.com/questions/27068673/subscribe-to-a-ble-gatt-notification-android
+	 * 0x2902 org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+	 */
+	BluetoothGattDescriptor descriptor = c.getDescriptor(UUIDfromInt(0x2902));
+	descriptor.setValue(enable ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+	mGatt.writeDescriptor(descriptor);
     }
     
     private void getLock() {
