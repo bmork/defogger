@@ -50,6 +50,8 @@ import java.util.UUID;
 public class IpCamActivity extends Activity {
     private static String msg = "Defogger IPCamActivity: ";
 
+    private static final int REQUEST_GET_NETWORK  = 0x10;
+
     private BluetoothGatt mGatt;
     private BluetoothGattService ipcamService;
     private BluetoothDevice device;
@@ -63,6 +65,8 @@ public class IpCamActivity extends Activity {
     private boolean locked = true;
     private boolean wifilink = false;
 
+    private String[] networks;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 	super.onCreate(savedInstanceState);
@@ -71,9 +75,9 @@ public class IpCamActivity extends Activity {
 	// Get the Intent that started this activity and extract parameters
 	Intent intent = getIntent();
 	pincode = intent.getStringExtra("pincode");
-	device = intent.getExtras().getParcelable("btdevice");
-	if (pincode == null || device == null)
-	    finish();
+	Bundle b = intent.getExtras();
+	if (b != null)
+	    device = b.getParcelable("btdevice");
 	
 	EditText cmd = (EditText) findViewById(R.id.command);
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
@@ -91,39 +95,54 @@ public class IpCamActivity extends Activity {
 
     @Override
     protected void onResume() {
+	Log.d(msg, "onResume()");
         super.onResume();
 	connectDevice(device);
     }
 
-    // utilities
-    private Map<String,String> splitKV(String kv, String splitter)
-    {
-	Map<String,String> ret = new HashMap();
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+	super.onSaveInstanceState(outState);
+	Log.d(msg, "onSaveInstanceState()");
+	outState.putParcelable("btdevice", device);
+	outState.putString("pincode", pincode);
+    }
 
-	for (String s : kv.split(splitter)) {
-	    String[] foo = s.split("=");
-	    ret.put(foo[0], foo[1]); 
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+	// Always call the superclass so it can restore the view hierarchy
+	super.onRestoreInstanceState(savedInstanceState);
+	Log.d(msg, "onRestoreInstanceState()");
+
+	// Restore state members from saved instance
+	device = savedInstanceState.getParcelable("btdevice");
+	pincode = savedInstanceState.getString("pincode");
+    }
+
+    @Override
+    protected void onActivityResult(int req, int res, Intent intent) {
+        super.onActivityResult(req, res, intent);
+	Log.d(msg, "activity returned result");
+	switch (req) {
+	case REQUEST_GET_NETWORK:
+	    if (res == RESULT_OK)
+		handleConfigureNetworkResult(intent.getStringExtra("netconf"));
+	    else
+		setStatus("Network configuration was cancelled");
+	    break;
+	default:
+	    Log.d(msg, "unknown activity result returned???");
 	}
-	return ret;
     }
 
-    private String calculateKey(String in) {
-	MessageDigest md5Hash = null;
-	try {
-	    md5Hash = MessageDigest.getInstance("MD5");
-	} catch (NoSuchAlgorithmException e) {
- 	    Log.d(msg, "Exception while encrypting to md5");
-	}
-	byte[] bytes = in.getBytes(StandardCharsets.UTF_8);
-	md5Hash.update(bytes, 0, bytes.length);
-	String ret = Base64.encodeToString(md5Hash.digest(), Base64.DEFAULT);
-	return ret.substring(0, 16);
+    /* offload network selection and password input to another activity */
+    public void startConfigureNetworkActivity(String[] networks) {
+	Intent intent = new Intent(this, ConfigureNetworkActivity.class);
+	intent.putExtra("networks", networks);
+	startActivityForResult(intent, REQUEST_GET_NETWORK);
     }
 
-    private UUID UUIDfromInt(long uuid) {
-	return new UUID(uuid << 32 | 0x1000 , 0x800000805f9b34fbL);
-    }
-    
+   
     // GATT callbacks
     private class GattClientCallback extends BluetoothGattCallback {
 	private String multimsg;
@@ -149,7 +168,7 @@ public class IpCamActivity extends Activity {
 	    }
 	    // get the IPCam service
 	    //	    ipcamService = gatt.getService(UUID.fromString("0000d001-0000-1000-8000-00805f9b34fb"));
-	    ipcamService = gatt.getService(UUIDfromInt(0xd001));
+	    ipcamService = gatt.getService(Util.UUIDfromInt(0xd001));
 	    if (ipcamService == null) {
 		disconnectDevice(gatt.getDevice().getName() + " does not support the IPCam GATT service");
 		return;
@@ -163,7 +182,7 @@ public class IpCamActivity extends Activity {
 	public void onCharacteristicRead (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
 	    String val = c.getStringValue(0);
-	    Map<String,String> kv = splitKV(val, ";");
+	    Map<String,String> kv = Util.splitKV(val, ";");
 
 	    Log.d(msg, c.getUuid().toString() + " returned " + val);
 	    
@@ -176,7 +195,7 @@ public class IpCamActivity extends Activity {
 		}
 
 		setStatus("Unlocking " + gatt.getDevice().getName() + " usin pincode " + pincode);
-		String key = calculateKey(gatt.getDevice().getName() + pincode + kv.get("C"));
+		String key = Util.calculateKey(gatt.getDevice().getName() + pincode + kv.get("C"));
 		doUnlock(key);
 		break;
 	    case 0xa100:
@@ -188,7 +207,7 @@ public class IpCamActivity extends Activity {
 		if (!kv.get("N").equals(kv.get("P")))
 		    readChar(0xa100);
 		else
-		    selectNetwork(multimsg.split("&"));
+		    networks = multimsg.split("&");
 		break;
 	    case 0xa101: // wificonfig
 		displayWifiConfig(kv);
@@ -210,14 +229,14 @@ public class IpCamActivity extends Activity {
 	}
 	
 	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic c) {
-	    Map<String,String> kv = splitKV(c.getStringValue(0), ";");
+	    Map<String,String> kv = Util.splitKV(c.getStringValue(0), ";");
 	    Log.d(msg, String.format("UUID %#06x mode=", Integer.parseInt(kv.get("C"))) + kv.get("A") + " state=" + kv.get("R"));
 	}
 
 	public void onCharacteristicWrite (BluetoothGatt gatt, BluetoothGattCharacteristic c, int status) {
 	    int code = (int)(c.getUuid().getMostSignificantBits() >> 32);
 	    String val = c.getStringValue(0);
-	    Map<String,String> kv = splitKV(val, ";");
+	    Map<String,String> kv = Util.splitKV(val, ";");
 	    
 	    Log.d(msg, "Write to " + c.getUuid().toString() + " status=" + status + ", value is now: " + val);
 	    
@@ -313,58 +332,9 @@ public class IpCamActivity extends Activity {
 	    });
     }
 
-    private class NetAdapter extends ArrayAdapter<String> {
-       	private int resource;
-	
-	public NetAdapter(Context context, int resource, String[] networks) {
-	    super(context, resource, networks);
-	    this.resource = resource;
-	}
-	
-	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
-	    //L=I=aaaa7,M=0,C=4,S=4,E=2,P=100
-	    // Get the data item for this position
-	    Map<String,String> net = splitKV(getItem(position).substring(2), ",");
-	    
-	    // Check if an existing view is being reused, otherwise inflate the view
-	    if (convertView == null) {
-		convertView = LayoutInflater.from(getContext()).inflate(resource, parent, false);
-	    }
-	    
-	    // Lookup view for data population
-	    TextView ssid = (TextView) convertView.findViewById(R.id.ssid);
-	    TextView channel = (TextView) convertView.findViewById(R.id.channel);
-	    TextView key_mgmt = (TextView) convertView.findViewById(R.id.key_mgmt);
-	    TextView proto = (TextView) convertView.findViewById(R.id.proto);
-	    TextView rssi = (TextView) convertView.findViewById(R.id.rssi);
-
-	    // Populate the data into the template view using the data object
-	    ssid.setText(net.get("I"));
-	    channel.setText(net.get("C"));
-	    key_mgmt.setText(net.get("S"));
-	    proto.setText(net.get("E"));
-	    rssi.setText(net.get("P"));
-
-	    // Return the completed view to render on screen
-	    return convertView;
-	}
-    }
-    
-    private void selectNetwork(String[] networks) {
-	Context ctx = this;
-	Log.d(msg, "displayWifiConfig()");
-	runOnUiThread(new Runnable() {
-		@Override
-		public void run() {
-		    ArrayAdapter<String> itemsAdapter = new NetAdapter(ctx, R.layout.item_net, networks);
-		    ListView listView = (ListView) findViewById(R.id.networks);
-		    listView.setAdapter(itemsAdapter);
-		}
-	    });
-    }
-	
     private void connectDevice(BluetoothDevice device) {
+	if (device == null)
+	    return;
 	Log.d(msg, "connectDevice() " + device.getAddress());
 
 	// create queues
@@ -400,17 +370,7 @@ public class IpCamActivity extends Activity {
 	finish();
     }
 
-    // camera specific code
-    private void setLocked(boolean lock) {
-	if (lock == locked)
-	    return;
-	
-	locked = lock;
- 	setStatus(mGatt.getDevice().getName() + " is " + (lock ? "locked" : "unlocked"));
-	if (locked)
-	    return;
-
-	/* collect current config after unlocking */
+    private void getCurrentConfig() {
 	View v = new View(this);
 	getWifiLink(v);
 	getWifiConfig(v);
@@ -419,11 +379,23 @@ public class IpCamActivity extends Activity {
 	doWifiScan(v);
     }
 
+    // camera specific code
+    private void setLocked(boolean lock) {
+	if (lock == locked)
+	    return;
+	locked = lock;
+ 	setStatus(mGatt.getDevice().getName() + " is " + (lock ? "locked" : "unlocked"));
+
+	/* autocollect current config after unlocking */
+	if (!locked)
+	    getCurrentConfig();
+   }
+
     private void notifications(boolean enable) {
 	if (!connected || !enable)
 	    return;
 	Log.d(msg, "notifications()");
-	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa000));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(Util.UUIDfromInt(0xa000));
 	if (!mGatt.setCharacteristicNotification(c, enable))
 	    Log.d(msg, "failed to enable notifications");
 
@@ -432,7 +404,7 @@ public class IpCamActivity extends Activity {
 	 * ref: https://stackoverflow.com/questions/27068673/subscribe-to-a-ble-gatt-notification-android
 	 * 0x2902 org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
 	 */
-	BluetoothGattDescriptor descriptor = c.getDescriptor(UUIDfromInt(0x2902));
+	BluetoothGattDescriptor descriptor = c.getDescriptor(Util.UUIDfromInt(0x2902));
 	descriptor.setValue(enable ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
 	mGatt.writeDescriptor(descriptor);
     }
@@ -442,7 +414,7 @@ public class IpCamActivity extends Activity {
 	    Log.d(msg, "getLock() already unlocked");
 	    return;
 	}
-	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa001));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(Util.UUIDfromInt(0xa001));
 	mGatt.readCharacteristic(c);
     }
 
@@ -450,7 +422,7 @@ public class IpCamActivity extends Activity {
 	if (!connected)
 	    return;
 	Log.d(msg, "doUnlock(), key is " + key);
-	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(0xa001));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(Util.UUIDfromInt(0xa001));
 	c.setValue("M=0;K=" + key); 
 	mGatt.writeCharacteristic(c);
     }
@@ -468,7 +440,7 @@ public class IpCamActivity extends Activity {
     private void readChar(int num) {
 	if (!connected)
 	    return;
-	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(Util.UUIDfromInt(num));
  	if (locked) {
 	    Log.d(msg, "camera is locked");
 	    readQ.offer(c);
@@ -483,7 +455,7 @@ public class IpCamActivity extends Activity {
     private void writeChar(int num, String val) {
 	if (!connected)
 	    return;
-	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(UUIDfromInt(num));
+	BluetoothGattCharacteristic c = ipcamService.getCharacteristic(Util.UUIDfromInt(num));
 	c.setValue(val);
  	if (locked) {
 	    Log.d(msg, "camera is locked");
@@ -495,8 +467,13 @@ public class IpCamActivity extends Activity {
 	    writeQ.offer(c);
     }
 
+    /* WiFi scan is required for network configuration */
     public void doWifiScan(View view) {
 	readChar(0xa100);
+    }
+
+    public void doWifiConfig(View view) {
+	startConfigureNetworkActivity(networks);
     }
 
     public void getWifiConfig(View view) {
@@ -542,21 +519,32 @@ public class IpCamActivity extends Activity {
 	runCommand("tdb set SecureFW _TrustLevel_byte=0");
     }
    
-    /*
-    private void setWifi(String essid, String passwd) {
-	if (wifiScanResults == null) {
-	    doWifiScan(gatt);
+    private void handleConfigureNetworkResult(String netconf) {
+	/* Validate result from ConfigureNetwork activity */
+	if (netconf == null) {
+	    setStatus("Network configuration was cancelled");
 	    return;
 	}
-	    
-	writeChar(0xa101, "P=;N=" + pincode);
+
+	/* sanity check result */
+	Map<String,String> kv = Util.splitKV(netconf, ";");
+	if (!kv.containsKey("M") || !kv.containsKey("I") || !kv.containsKey("S") || !kv.containsKey("E") || !kv.containsKey("K"))  {
+	    setStatus("Network configuration failure - data missing");
+	    return;
+	}
+
+	/* OK, go */
+	writeChar(0xa101, netconf); // configure wifi
+	writeChar(0xa102, "C=1");   // connect
+
+	/* refresh current settings for display */
+	getCurrentConfig();
     }
-    */
-    
+
+    /* does this work? */
     private void setInitialPassword() {
 	queuedSetPassword("P=;N=" + pincode);
     }
-
 
     /*
      * writing a series of values to this characteristic is not the

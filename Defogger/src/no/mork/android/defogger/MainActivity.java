@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onResume() {
+	Log.d(msg, "onResume()");
         super.onResume();
 	getBluetoothAdapter();
     }

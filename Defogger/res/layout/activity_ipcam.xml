@@ -26,7 +26,7 @@
        android:id="@+id/wificonfig"
        android:layout_width="match_parent"
        android:layout_height="wrap_content"
-       android:onClick="getWifiConfig"
+       android:onClick="doWifiConfig"
        android:text="@string/wificonfig"/>
 
    <TextView
@@ -80,17 +80,5 @@
        android:inputType="text"
        android:imeOptions="actionDone"
        android:imeActionLabel="Run" />
-
-   <Button
-       android:id="@+id/setup"
-       android:layout_width="match_parent"
-       android:layout_height="wrap_content"
-       android:onClick="getWifiLink"
-       android:text="@string/setup"/>
-
-   <ListView
-       android:id="@+id/networks"
-       android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
 
 </LinearLayout>

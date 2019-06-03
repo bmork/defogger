@@ -1,38 +1,38 @@
 <?xml version='1.0'?>
-<manifest xmlns:a='http://schemas.android.com/apk/res/android'
+<manifest xmlns:android='http://schemas.android.com/apk/res/android'
 	  package='no.mork.android.defogger'
-	  a:versionCode='0'
-	  a:versionName='0'>
+	  android:versionCode='0'
+	  android:versionName='0'>
 
   <!-- API level 18 required for EC signing key support
        API level 21 required for BluetoothLeScanner -->
-  <uses-sdk a:minSdkVersion="21" />
+  <uses-sdk android:minSdkVersion="21" />
 
-  <uses-permission a:name="android.permission.BLUETOOTH"/>
+  <uses-permission android:name="android.permission.BLUETOOTH"/>
   <!-- BT admin required for scanning -->
-  <uses-permission a:name="android.permission.BLUETOOTH_ADMIN"/>
+  <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>
   <!-- An app must hold ACCESS_COARSE_LOCATION or ACCESS_FINE_LOCATION permission in order to get BT scan results. -->
-  <uses-permission a:name="android.permission.ACCESS_COARSE_LOCATION"/>
+  <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
-  <uses-feature a:name="android.hardware.bluetooth_le" a:required="true"/>
- 
-  <application a:label="Defogger">
-        <activity a:name=".MainActivity">
+  <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
+
+  <application android:label="Defogger">
+        <activity android:name="no.mork.android.defogger.MainActivity">
           <intent-filter>
-            <category a:name="android.intent.category.LAUNCHER"/>
-            <action a:name="android.intent.action.MAIN"/>
+            <category android:name="android.intent.category.LAUNCHER"/>
+            <action android:name="android.intent.action.MAIN"/>
           </intent-filter>
         </activity>
-
        <activity
-           a:name=".ScannerActivity"
-	   a:parentActivityName=".MainActivity" />
-
+           android:name="no.mork.android.defogger.ScannerActivity"
+	   android:parentActivityName="no.mork.android.defogger.MainActivity" />
        <activity
-           a:name=".IpCamActivity"
-	   a:parentActivityName=".MainActivity"
-	   a:windowSoftInputMode="stateHidden|adjustResize" />
-
+           android:name="no.mork.android.defogger.IpCamActivity"
+	   android:parentActivityName="no.mork.android.defogger.MainActivity"
+	   android:windowSoftInputMode="stateHidden|adjustResize" />
+       <activity
+           android:name="no.mork.android.defogger.ConfigureNetworkActivity"
+	   android:parentActivityName="no.mork.android.defogger.IpCamActivity"
+ 	   android:windowSoftInputMode="stateHidden|adjustResize" />
   </application>
-
 </manifest>

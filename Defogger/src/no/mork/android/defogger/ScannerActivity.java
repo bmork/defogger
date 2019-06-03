@@ -81,7 +81,7 @@ public class ScannerActivity extends Activity implements Runnable {
 	    TextView txt = (TextView) convertView.findViewById(R.id.scanitem);
 	    txt.setText(device.getAddress() + " - " + device.getName());
 
-	    // react when selecting iteam
+	    // react when selecting item
 	    convertView.setOnClickListener(new OnClickListener() {
 		    private BluetoothDevice ret = device;
 
