@@ -22,12 +22,15 @@ public class Util {
     {
 	Map<String,String> ret = new HashMap();
 	
-	if (kv != null)
-	    for (String s : kv.split(splitter)) {
-		String[] foo = s.split("=");
-		ret.put(foo[0], foo[1]); 
-	    }
+	if (kv == null || kv.length() < 3)
+	    return ret;
 
+	for (String s : kv.split(splitter)) {
+	    if (s.length() < 3)
+		continue;
+	    String[] foo = s.split("=");
+	    ret.put(foo[0], foo[1]); 
+	}
 	return ret;
     }
 

@@ -37,5 +37,7 @@
    <ListView
        android:id="@+id/networks"
        android:layout_width="wrap_content"
-       android:layout_height="wrap_content"/>
+       android:layout_height="wrap_content"
+       android:choiceMode="singleChoice"
+       android:listSelector="@color/list_view_selector"/>
 </LinearLayout>

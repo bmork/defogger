@@ -75,6 +75,7 @@ public class ConfigureNetworkActivity extends Activity {
  
 	ListView listView = (ListView) findViewById(R.id.networks);
 	listView.setAdapter(networklist);
+	setResult(RESULT_CANCELED); // default
     }
 
     public void returnConfigResult(String config) {
@@ -83,8 +84,6 @@ public class ConfigureNetworkActivity extends Activity {
 	if (config != null) {
 	    intent.putExtra("netconf", config);
 	    setResult(RESULT_OK, intent);
-	} else {
-	    setResult(RESULT_CANCELED, intent);
 	}
 	finish();
     }
