@@ -39,6 +39,8 @@ public class ScannerActivity extends Activity implements Runnable {
     private ScanCallback leScanCallback;
     private ScanAdapter scanlistAdapter;
 
+    private BluetoothDevice device;
+
     private class BtleScanCallback extends ScanCallback {
 	@Override
 	public void onScanResult(int callbackType, ScanResult result) {
@@ -88,7 +90,7 @@ public class ScannerActivity extends Activity implements Runnable {
 		    @Override
 		    public void onClick(View v) {
 			Log.d(msg, "ScanListAdapter: onClick() will return " + ret.getName());
-			ctx.returnScanResult(ret);
+			ctx.setSelection(ret);
 		    }
 		});
 
@@ -119,6 +121,14 @@ public class ScannerActivity extends Activity implements Runnable {
 	stopScan();
     }
 
+    public void doConnect(View view) {
+	returnScanResult();
+    }
+
+    public void setSelection(BluetoothDevice device) {
+	this.device = device;
+    }
+
     private void addScanResult(ScanResult result) {
 	BluetoothDevice device = result.getDevice();
 
@@ -130,7 +140,7 @@ public class ScannerActivity extends Activity implements Runnable {
 	scanlistAdapter.add(device);
     }
     
-    public void returnScanResult(BluetoothDevice device) {
+    public void returnScanResult() {
 	Log.d(msg, "returnScanResult()");
 	stopScan();
 

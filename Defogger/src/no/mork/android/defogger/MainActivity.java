@@ -132,8 +132,9 @@ public class MainActivity extends Activity {
 
     public void startQRReaderActivity(View view) {
 	IntentIntegrator integrator = new IntentIntegrator(this);
-	integrator.setTitleByID(R.string.qrtitle);
 	integrator.addExtra(Intents.Scan.SAVE_HISTORY, false); // prevent scan result from showing up in input history...
+	integrator.addExtra(Intents.Scan.RESULT_DISPLAY_DURATION_MS, 0L); // no need to linger after a successful scan...
+	integrator.addExtra(Intents.Scan.PROMPT_MESSAGE, getResources().getString(R.string.qrscan_msg));
 	integrator.initiateScan(IntentIntegrator.QR_CODE_TYPES);
     }
 
@@ -152,15 +153,9 @@ public class MainActivity extends Activity {
 	    return;
 	}
 
-	StringBuilder mac = new StringBuilder(data[3]);
-	mac.insert(10, ':');
-	mac.insert(8, ':');
-	mac.insert(6, ':');
-	mac.insert(4, ':');
-	mac.insert(2, ':');
-
-	if (!bluetoothAdapter.checkBluetoothAddress(mac.toString())) {
-	    Log.d(msg, "Got invalid MAC address from QR scan:" + mac.toString());
+	String mac = data[3].replaceAll("([A-F0-9]{2})", "$1:").substring(0, 17);
+	if (!bluetoothAdapter.checkBluetoothAddress(mac)) {
+	    Log.d(msg, "Got invalid MAC address from QR scan:" + mac);
 	    return;
 	}
 	device = bluetoothAdapter.getRemoteDevice(mac.toString());

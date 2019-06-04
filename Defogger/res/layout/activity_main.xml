@@ -10,7 +10,6 @@
        android:layout_centerHorizontal="true"
        android:layout_centerVertical="true"
        android:text="@string/hello_msg" />
-
    <Button
        android:id="@+id/start_scan"
        android:layout_width="match_parent"

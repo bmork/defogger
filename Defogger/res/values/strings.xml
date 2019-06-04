@@ -1,14 +1,18 @@
 <resources>
   <string name="app_name">Defogger</string>
   <string name="hello_msg">Welcome a Beautiful Blue Sky for the modern IP Camera</string>
-  <string name="menu_settings">Settings</string>
-  <string name="title_activity_main">MainActivity</string>
 
   <!-- Main -->
-
   <string name="start_scan">Run Bluetooth Scan</string>
   <string name="read_qrcode">Read QR Code</string>
   <string name="wificonfig">Network configuration</string>
+  <string name="qrscan_msg">Scan D-Link Camera QR Code Card</string>
+
+  <!-- Scanner -->
+  <string name="connect">Connect to Camera</string>
+  <string name="pincode">Enter pincode:</string>
+  
+  <!-- IpCam -->
   <string name="sysinfo">System information</string>
   <string name="setup">Configure network</string>
   <string name="telnetd">Enable telnet (volatile)</string>
@@ -17,21 +21,4 @@
   <string name="unsignedfw">Enable unsigned firmware (permanent)</string>
   <string name="command">Run command</string>
 
-  <string name="qrtitle">Read D-Link Camera QR Code</string>
-
-  
-  <!-- Scanner -->
-
-  <string name="bluetooth_client">Bluetooth Client</string>
-  <string name="scanning">Scanning</string>
-  <string name="start">Start</string>
-  <string name="stop">Stop</string>
-  <string name="ble_servers">BLE Servers</string>
-  <string name="connect">Connect</string>
-  <string name="disconnect">Disonnect</string>
-  <string name="messages">Messages</string>
-  <string name="send">Send</string>
-  <string name="request_timestamp">Request Timestamp</string>
-  
- 
 </resources>
