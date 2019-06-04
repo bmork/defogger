@@ -17,22 +17,23 @@
   <uses-feature android:name="android.hardware.bluetooth_le" android:required="true"/>
 
   <application android:label="Defogger">
-        <activity android:name="no.mork.android.defogger.MainActivity">
-          <intent-filter>
-            <category android:name="android.intent.category.LAUNCHER"/>
-            <action android:name="android.intent.action.MAIN"/>
-          </intent-filter>
-        </activity>
-       <activity
-           android:name="no.mork.android.defogger.ScannerActivity"
-	   android:parentActivityName="no.mork.android.defogger.MainActivity" />
-       <activity
-           android:name="no.mork.android.defogger.IpCamActivity"
-	   android:parentActivityName="no.mork.android.defogger.MainActivity"
-	   android:windowSoftInputMode="stateHidden|adjustResize" />
-       <activity
-           android:name="no.mork.android.defogger.ConfigureNetworkActivity"
-	   android:parentActivityName="no.mork.android.defogger.IpCamActivity"
- 	   android:windowSoftInputMode="stateHidden|adjustResize" />
+    <activity
+	android:name=".MainActivity">
+      <intent-filter>
+        <category android:name="android.intent.category.LAUNCHER"/>
+        <action android:name="android.intent.action.MAIN"/>
+      </intent-filter>
+    </activity>
+    <activity
+        android:name=".ScannerActivity"
+	android:parentActivityName=".MainActivity" />
+    <activity
+        android:name=".IpCamActivity"
+	android:parentActivityName=".MainActivity"
+	android:windowSoftInputMode="stateHidden|adjustResize" />
+    <activity
+        android:name=".ConfigureNetworkActivity"
+	android:parentActivityName=".IpCamActivity"
+ 	android:windowSoftInputMode="stateHidden|adjustResize" />
   </application>
 </manifest>

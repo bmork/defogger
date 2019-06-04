@@ -17,6 +17,9 @@
   <string name="unsignedfw">Enable unsigned firmware (permanent)</string>
   <string name="command">Run command</string>
 
+  <string name="qrtitle">Read D-Link Camera QR Code</string>
+
+  
   <!-- Scanner -->
 
   <string name="bluetooth_client">Bluetooth Client</string>

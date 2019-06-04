@@ -69,6 +69,7 @@ public class IpCamActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+	Log.d(msg, "onCreate()");
 	super.onCreate(savedInstanceState);
 	setContentView(R.layout.activity_ipcam);
 
@@ -76,9 +77,11 @@ public class IpCamActivity extends Activity {
 	Intent intent = getIntent();
 	pincode = intent.getStringExtra("pincode");
 	Bundle b = intent.getExtras();
-	if (b != null)
+	if (b == null) // when can this happen? Answer: If we crashed and are restarted by the system....
+	    Log.e(msg, "Caller failed to provide us with a Bluetooth device - all actions will fail (pincode is " + pincode + ")");
+	else
 	    device = b.getParcelable("btdevice");
-	
+
 	EditText cmd = (EditText) findViewById(R.id.command);
 	cmd.setOnEditorActionListener(new OnEditorActionListener() {
 		@Override
@@ -98,25 +101,6 @@ public class IpCamActivity extends Activity {
 	Log.d(msg, "onResume()");
         super.onResume();
 	connectDevice(device);
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-	super.onSaveInstanceState(outState);
-	Log.d(msg, "onSaveInstanceState()");
-	outState.putParcelable("btdevice", device);
-	outState.putString("pincode", pincode);
-    }
-
-    @Override
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-	// Always call the superclass so it can restore the view hierarchy
-	super.onRestoreInstanceState(savedInstanceState);
-	Log.d(msg, "onRestoreInstanceState()");
-
-	// Restore state members from saved instance
-	device = savedInstanceState.getParcelable("btdevice");
-	pincode = savedInstanceState.getString("pincode");
     }
 
     @Override
@@ -214,6 +198,9 @@ public class IpCamActivity extends Activity {
 		break;
 	    case 0xa103: // wifilink
 		wifilink = kv.get("S").equals("1");
+		// refresh IP config if link changed to up
+		if (wifilink)
+		    readChar(0xa104);
 		break;
 	    case 0xa104: // ipconfig
 		displayIpConfig(kv);
@@ -333,7 +320,7 @@ public class IpCamActivity extends Activity {
     }
 
     private void connectDevice(BluetoothDevice device) {
-	if (device == null)
+	if (device == null || connected)
 	    return;
 	Log.d(msg, "connectDevice() " + device.getAddress());
 
@@ -366,15 +353,14 @@ public class IpCamActivity extends Activity {
 
 	if (mGatt != null)
 	    mGatt.close();
-	Log.d(msg, "disconnectDevice() " + device.getAddress() + " with reason: " + reason);
-	finish();
+	Log.d(msg, "disconnectDevice() with reason: " + reason);
+       	finish();
     }
 
     private void getCurrentConfig() {
 	View v = new View(this);
 	getWifiLink(v);
 	getWifiConfig(v);
-	getIpConfig(v);
 	getSysInfo(v);
 	doWifiScan(v);
     }
@@ -484,10 +470,6 @@ public class IpCamActivity extends Activity {
 	readChar(0xa103);
     }
 
-    public void getIpConfig(View view) {
-	readChar(0xa104);
-    }
-
     public void getSysInfo(View view) {
 	readChar(0xa200);
     }
@@ -533,9 +515,10 @@ public class IpCamActivity extends Activity {
 	    return;
 	}
 
+	Log.d(msg, "Would configure: " + netconf);
 	/* OK, go */
-	writeChar(0xa101, netconf); // configure wifi
-	writeChar(0xa102, "C=1");   // connect
+	//	writeChar(0xa101, netconf); // configure wifi
+	//	writeChar(0xa102, "C=1");   // connect
 
 	/* refresh current settings for display */
 	getCurrentConfig();

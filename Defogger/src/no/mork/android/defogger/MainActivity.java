@@ -31,6 +31,8 @@ public class MainActivity extends Activity {
     private static final int REQUEST_GET_DEVICE = 2;
     
     private BluetoothAdapter bluetoothAdapter;
+    private BluetoothDevice device;
+    private String pincode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +50,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
         super.onActivityResult(requestCode, resultCode, dataIntent);
+
+	Log.d(msg, "onActivityResult() requestCode=" + requestCode);
+	Log.d(msg, "Intent is " + dataIntent);
 
 	switch (requestCode) {
 	case IntentIntegrator.REQUEST_CODE:
@@ -68,19 +73,22 @@ public class MainActivity extends Activity {
 		break;
 	    }
 
-	    BluetoothDevice dev = dataIntent.getExtras().getParcelable("btdevice");
-	    if (dev == null) {
+	    device = dataIntent.getExtras().getParcelable("btdevice");
+	    if (device == null) {
+		pincode = null;
 		setStatus("No camera selected");
 		break;
 	    }
 
 	    String pincode = dataIntent.getStringExtra("pincode");
 	    if (pincode == null || pincode.length() < 6) {
+		pincode = null;
+		device = null;
 		setStatus("Bogus pincode");
 		break;
 	    }
 
-	    startIpCamActivity(dev, pincode);
+	    startIpCamActivity();
 	    break;
 	default:
 	    Log.d(msg, "unknown request???");
@@ -108,8 +116,9 @@ public class MainActivity extends Activity {
 	}
     }
 
-    public void startIpCamActivity(BluetoothDevice device, String pincode) {
+    public void startIpCamActivity() {
 	Intent intent = new Intent(this, IpCamActivity.class);
+	intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
 	intent.putExtra("pincode", pincode);
 	intent.putExtra("btdevice", device);
 	startActivity(intent);
@@ -122,7 +131,8 @@ public class MainActivity extends Activity {
 
     public void startQRReaderActivity(View view) {
 	IntentIntegrator integrator = new IntentIntegrator(this);
-	integrator.initiateScan();
+	integrator.setTitleByID(R.values.qrtitle);
+	integrator.initiateScan(IntentIntegrator.QR_CODE_TYPES);
     }
 
     private void handleQRScanResult(IntentResult res) {
@@ -151,8 +161,9 @@ public class MainActivity extends Activity {
 	    Log.d(msg, "Got invalid MAC address from QR scan:" + mac.toString());
 	    return;
 	}
-	BluetoothDevice dev = bluetoothAdapter.getRemoteDevice(mac.toString());
-	startIpCamActivity(dev, data[5]);
+	device = bluetoothAdapter.getRemoteDevice(mac.toString());
+	pincode = data[5];
+	startIpCamActivity();
     }
 
     

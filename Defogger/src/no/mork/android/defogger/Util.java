@@ -21,11 +21,13 @@ public class Util {
     public static Map<String,String> splitKV(String kv, String splitter)
     {
 	Map<String,String> ret = new HashMap();
+	
+	if (kv != null)
+	    for (String s : kv.split(splitter)) {
+		String[] foo = s.split("=");
+		ret.put(foo[0], foo[1]); 
+	    }
 
-	for (String s : kv.split(splitter)) {
-	    String[] foo = s.split("=");
-	    ret.put(foo[0], foo[1]); 
-	}
 	return ret;
     }
 

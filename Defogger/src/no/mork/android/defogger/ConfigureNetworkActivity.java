@@ -34,6 +34,7 @@ public class ConfigureNetworkActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+	Log.d(msg, "onCreate()");
 	super.onCreate(savedInstanceState);
 	setContentView(R.layout.activity_configurenetwork);
 
@@ -74,18 +75,15 @@ public class ConfigureNetworkActivity extends Activity {
  
 	ListView listView = (ListView) findViewById(R.id.networks);
 	listView.setAdapter(networklist);
-	intent.putExtra("netconf", "");
-	setResult(RESULT_CANCELED, intent);
     }
 
     public void returnConfigResult(String config) {
-	Log.d(msg, "returnConfigResult()");
+	Log.d(msg, "returnConfigResult(): " + config);
  	Intent intent = new Intent();
 	if (config != null) {
 	    intent.putExtra("netconf", config);
 	    setResult(RESULT_OK, intent);
 	} else {
-	    intent.putExtra("netconf", "");
 	    setResult(RESULT_CANCELED, intent);
 	}
 	finish();
@@ -98,21 +96,31 @@ public class ConfigureNetworkActivity extends Activity {
   	if (selected == null)
 	    returnConfigResult(null);
 
-	Map<String,String> kv = Util.splitKV(selected, ".");
+	Log.d(msg, "selected is " + selected);
+
+	Map<String,String> kv = Util.splitKV(selected, ",");
     	EditText edit = (EditText) findViewById(R.id.password);
 	String password = edit.getText().toString();
-	String ret = null;
-	String ssid = kv.get("I"); // FIXME: allow entering SSID in edit field
+
+    	edit = (EditText) findViewById(R.id.ssid);
+	String ssid = kv.containsKey("I") ? kv.get("I") : edit.getText().toString();
+
+	/* returning empty ssid is not allowed */
+	if (ssid == null || ssid.length() == 0)
+	    returnConfigResult(null);
+
 	if (password == null)
 	    password = "";
 
-	/* assume open network if password is empty? */
-	if (password.length() == 0 && (!kv.get("S").equals("0") || !kv.get("E").equals("0")))
+	/* set defaults, assuming open network if password is empty and ssid was not found */
+	int S = kv.containsKey("S") ? Integer.parseInt(kv.get("S")) : password.length() > 0 ? 4 : 0;
+	int E = kv.containsKey("E") ? Integer.parseInt(kv.get("E")) : password.length() > 0 ? 2 : 0;
+
+	/* password is required unless open network */
+	if (password.length() == 0 && (S != 0 || E !=0))
 	    returnConfigResult(null);
 	else
-	    ret = "M=0;I=" + ssid + ";S=" + kv.get("S") + ";E=" + kv.get("E") + ";K=" + password;
-	
-	returnConfigResult(ret);
+	    returnConfigResult("M=0;I=" + ssid + ";S=" + S + ";E=" + E + ";K=" + password);
     }
     
     private class NetAdapter extends ArrayAdapter {
