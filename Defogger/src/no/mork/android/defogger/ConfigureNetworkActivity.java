@@ -79,7 +79,7 @@ public class ConfigureNetworkActivity extends Activity {
 	setResult(RESULT_CANCELED); // default
     }
 
-       @Override
+    @Override
     protected void onResume() {
 	Log.d(msg, "onResume()");
         super.onResume();
