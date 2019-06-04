@@ -17,6 +17,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.google.zxing.client.android.Intents;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -131,7 +132,8 @@ public class MainActivity extends Activity {
 
     public void startQRReaderActivity(View view) {
 	IntentIntegrator integrator = new IntentIntegrator(this);
-	integrator.setTitleByID(R.values.qrtitle);
+	integrator.setTitleByID(R.string.qrtitle);
+	integrator.addExtra(Intents.Scan.SAVE_HISTORY, false); // prevent scan result from showing up in input history...
 	integrator.initiateScan(IntentIntegrator.QR_CODE_TYPES);
     }
 

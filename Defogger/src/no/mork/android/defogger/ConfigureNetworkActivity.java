@@ -105,6 +105,8 @@ public class ConfigureNetworkActivity extends Activity {
     	edit = (EditText) findViewById(R.id.ssid);
 	String ssid = kv.containsKey("I") ? kv.get("I") : edit.getText().toString();
 
+	Log.d(msg, "kv is " + kv);
+	
 	/* returning empty ssid is not allowed */
 	if (ssid == null || ssid.length() == 0)
 	    returnConfigResult(null);

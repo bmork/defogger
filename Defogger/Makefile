@@ -22,6 +22,7 @@ RES=$(addprefix res/,$(RESOURCES))
 #CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,$(wildcard src/no/mork/android/defogger/util/*.java) $(wildcard src/no/mork/android/defogger/*.java))
 CLASSES=obj/no/mork/android/defogger/R.class $(patsubst src/%.java,obj/%.class,\
 	$(wildcard src/no/mork/android/defogger/*.java) \
+	$(wildcard src/com/google/zxing/client/android/*.java) \
 	$(wildcard src/com/google/zxing/integration/android/*.java))
 
 all: defogger.apk
