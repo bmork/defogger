@@ -93,6 +93,7 @@ public class IpCamActivity extends Activity {
 		    }
 		    return false;
 		}
+
 	    });
     }
 
@@ -101,6 +102,47 @@ public class IpCamActivity extends Activity {
 	Log.d(msg, "onResume()");
         super.onResume();
 	connectDevice(device);
+    }
+
+    @Override
+    protected void onPause() {
+	Log.d(msg, "onPause()");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+	Log.d(msg, "onStop()");
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+	Log.d(msg, "onDestroy()");
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+	Log.d(msg, "onSaveInstanceState()");
+
+	// Save the user's current game state
+	savedInstanceState.putString("pincode", pincode);
+	savedInstanceState.putParcelable("btdevice", device);
+
+	// Always call the superclass so it can save the view hierarchy state
+	super.onSaveInstanceState(savedInstanceState);
+    }
+
+    
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+	Log.d(msg, "onRestoreInstanceState()");
+	// Always call the superclass so it can restore the view hierarchy
+	super.onRestoreInstanceState(savedInstanceState);
+
+	// Restore state members from saved instance
+	pincode = savedInstanceState.getString("pincode");
+	device = savedInstanceState.getParcelable("btdevice");
     }
 
     @Override
