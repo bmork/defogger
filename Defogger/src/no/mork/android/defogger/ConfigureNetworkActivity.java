@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.ParcelUuid;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -78,6 +79,67 @@ public class ConfigureNetworkActivity extends Activity {
 	setResult(RESULT_CANCELED); // default
     }
 
+       @Override
+    protected void onResume() {
+	Log.d(msg, "onResume()");
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+	Log.d(msg, "onPause()");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+	Log.d(msg, "onStop()");
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+	Log.d(msg, "onDestroy()");
+        super.onDestroy();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+	Log.d(msg, "onSaveInstanceState()");
+
+	// Save the user's current game state
+
+	// Always call the superclass so it can save the view hierarchy state
+	super.onSaveInstanceState(savedInstanceState);
+    }
+
+    
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+	Log.d(msg, "onRestoreInstanceState()");
+	// Always call the superclass so it can restore the view hierarchy
+	super.onRestoreInstanceState(savedInstanceState);
+
+	// Restore state members from saved instance
+    }
+
+    public void onBackPressed() {
+    	Log.d(msg, "onBackPressed()");
+	//	returnConfigResult(null);
+	//	setResult(RESULT_CANCELED); // default
+        super.onBackPressed();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	Log.d(msg, "onOptionsItemSelected()");
+	switch (item.getItemId()){
+	case android.R.id.home:
+	    onBackPressed();
+	    return true;
+	}
+	return super.onOptionsItemSelected(item);
+    }
+    
     public void returnConfigResult(String config) {
 	Log.d(msg, "returnConfigResult(): " + config);
  	Intent intent = new Intent();
@@ -86,6 +148,10 @@ public class ConfigureNetworkActivity extends Activity {
 	    setResult(RESULT_OK, intent);
 	}
 	finish();
+    }
+
+    public void doCancel(View v) {
+	returnConfigResult(null);
     }
 
     public void doFinish(View v) {
@@ -124,13 +190,4 @@ public class ConfigureNetworkActivity extends Activity {
 	    returnConfigResult("M=0;I=" + ssid + ";S=" + S + ";E=" + E + ";K=" + password);
     }
     
-    private class NetAdapter extends ArrayAdapter {
-       	private int resource;
-	
-	public NetAdapter(Context context, int resource, String[] networks) {
-	    super(context, resource, networks);
-	    this.resource = resource;
-	}
-	
-   }
 }

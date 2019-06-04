@@ -19,6 +19,6 @@
   <string name="lighttpd">Enable http API (volatile)</string>
   <string name="rtsp">Enable rtsp (permanent)</string>
   <string name="unsignedfw">Enable unsigned firmware (permanent)</string>
-  <string name="command">Run command</string>
+  <string name="runcommand">Run command</string>
 
 </resources>
