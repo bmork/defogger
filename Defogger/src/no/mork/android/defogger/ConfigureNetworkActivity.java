@@ -18,6 +18,8 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -73,7 +75,7 @@ public class ConfigureNetworkActivity extends Activity {
 		    return convertView;
 		}
 	    };
- 
+
 	ListView listView = (ListView) findViewById(R.id.networks);
 	listView.setAdapter(networklist);
 	setResult(RESULT_CANCELED); // default

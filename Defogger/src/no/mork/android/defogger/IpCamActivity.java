@@ -168,6 +168,12 @@ public class IpCamActivity extends Activity {
 	startActivityForResult(intent, REQUEST_GET_NETWORK);
     }
 
+    /* http service for backups, firmware downloads etc */
+    public void startHttpService(int port) {
+	Intent intent = new Intent(this, HttpService.class);
+	intent.putExtra("httpport", port);
+	startService(intent);
+    }
    
     // GATT callbacks
     private class GattClientCallback extends BluetoothGattCallback {

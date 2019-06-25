@@ -35,5 +35,8 @@
         android:name=".ConfigureNetworkActivity"
 	android:parentActivityName=".IpCamActivity"
  	android:windowSoftInputMode="stateHidden|adjustResize" />
+    <service
+	android:name=".HttpService"/>
+
   </application>
 </manifest>
