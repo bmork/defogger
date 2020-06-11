@@ -549,9 +549,9 @@ which the firmwareupgrade.cgi script is running from.
 
 ### Serial console
 
-Entirely optional.  The defogging procedure does not require console
-access, but it can be very useful when debugging problems related to
-network configuration etc.
+Useful for fw greater than v2.02.02. The serial console is used to temporally 
+enable the webservice of the camera. Then, the fw can be downloaded using defogging procedure 
+and further flash the custom fw.tar firmware.
 
 There is a 4 hole female header with 2 mm spacing in the bottom of the
 camera. This header is easily accessible without opening the case at
@@ -709,11 +709,33 @@ as the first command.  And then run for example
 
 to enable temporary passwordless telnet into the camera instead of/in
 addition to the serial console. This is futile unless you have
-networking of course. I will not go into details on how to do that
-from the shell. Use the much simpler Bluetooth procedure described
-above. Or the "mydlink" app if you prefer.
+networking of course.  Use the much simpler Bluetooth procedure described
+above. Or the "mydlink" app if you prefer to establish a network connection
+to your camera.
 
+Then run the following commands:
 
+`grep -Eq ^admin: /etc/passwd || echo admin:x:0:0::/:/bin/sh >>/etc/passwd`
+
+`grep -Eq ^admin:x: /etc/passwd && echo "admin:$(pibinfo Pincode)" | chpasswd`
+
+`tdb set HTTPAccount AdminPasswd_ss="$(pibinfo Pincode)"`
+
+`/etc/rc.d/init.d/extra_lighttpd.sh start`
+
+on the local machine, run
+
+`$ curl --http1.0 -u admin:CAMPIN --form upload=@DCS-8000LH_Ax_v2.02.02_3014.bin http://CAM.IP/config/firmwareupgrade.cgi
+curl: (52) Empty reply from server`
+
+this will downgrade the firmware to 2.02.02. 
+
+Repeat the bluetooth hack or using serial to re-enable lighttpd server on your camera and run 
+the following command on your local machine.
+
+`$ curl --http1.0 -u admin:CAMPIN --form upload=@fw.tar http://CAM.IP/config/firmwareupgrade.cgi`
+About 1 min later, the camera will reboot.
+After the reboot process, you will have a cam with all the goodies mentioned above with fw 2.02.02.
 ### OEM boot log
 
 ```
