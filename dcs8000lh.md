@@ -724,6 +724,7 @@ Then run the following commands:
 `/etc/rc.d/init.d/extra_lighttpd.sh start`
 
 on the local machine, run
+
 `$ curl --http1.0 -u admin:CAMPIN --form upload=@DCS-8000LH_Ax_v2.02.02_3014.bin http://CAM.IP/config/firmwareupgrade.cgi
 curl: (52) Empty reply from server`
 this will downgrade the firmware to 2.02.02. 
