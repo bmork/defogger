@@ -727,13 +727,14 @@ on the local machine, run
 
 `$ curl --http1.0 -u admin:CAMPIN --form upload=@DCS-8000LH_Ax_v2.02.02_3014.bin http://CAM.IP/config/firmwareupgrade.cgi
 curl: (52) Empty reply from server`
+
 this will downgrade the firmware to 2.02.02. 
 
 Repeat the bluetooth hack or using serial to re-enable lighttpd server on your camera and run 
 the following command on your local machine.
-`$ curl --http1.0 -u admin:CAMPIN --form upload=@fw.tar http://CAM.IP/config/firmwareupgrade.cgi
-upgrade=ok`
 
+`$ curl --http1.0 -u admin:CAMPIN --form upload=@fw.tar http://CAM.IP/config/firmwareupgrade.cgi`
+About 1 min later, the camera will reboot.
 After the reboot process, you will have a cam with all the goodies mentioned above with fw 2.02.02.
 ### OEM boot log
 
