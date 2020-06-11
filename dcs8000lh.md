@@ -549,9 +549,9 @@ which the firmwareupgrade.cgi script is running from.
 
 ### Serial console
 
-Entirely optional.  The defogging procedure does not require console
-access, but it can be very useful when debugging problems related to
-network configuration etc.
+Useful for fw greater than v2.02.02. The serial console is useful to temporally 
+enable the webservice of the camera. Then, the fw can be downloaded using defogging procedure 
+and further flash the custom fw.tar firmware.
 
 There is a 4 hole female header with 2 mm spacing in the bottom of the
 camera. This header is easily accessible without opening the case at
