@@ -719,6 +719,8 @@ Then run the following commands:
 
 `grep -Eq ^admin:x: /etc/passwd && echo "admin:$(pibinfo Pincode)" | chpasswd`
 
+`tdb set HTTPServer Enable_byte=1"`
+
 `tdb set HTTPAccount AdminPasswd_ss="$(pibinfo Pincode)"`
 
 `/etc/rc.d/init.d/extra_lighttpd.sh start`
